@@ -18,7 +18,15 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { db, auth, handleFirestoreError } from '../lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+function getAI() {
+  const apiKey = process.env.GEMINI_API_KEY || "dummy-key";
+  if (!process.env.GEMINI_API_KEY) {
+    console.warn("GEMINI_API_KEY is missing. AI features will be limited.");
+  }
+  return new (GoogleGenAI as any)({ apiKey });
+}
+
+const ai = getAI();
 
 export default function Competitors() {
   const [url, setUrl] = useState('');
@@ -29,11 +37,14 @@ export default function Competitors() {
     if (!url) return;
     setLoading(true);
     try {
-      const response = await ai.models.generateContent({
+      const model = (ai as any).getGenerativeModel({
         model: "gemini-3-flash-preview",
+        systemInstruction: "You are an elite competitive intelligence agent. Your job is to extract high-velocity patterns from social media profile URLs. Always return data in strict JSON format."
+      });
+
+      const response = await model.generateContent({
         contents: [{ text: `Analyze this competitor profile: ${url}. Provide a breakdown of their effective hashtags, their content theme (in 3-5 words), and a growth tip for us.` }],
-        config: {
-          systemInstruction: "You are an elite competitive intelligence agent. Your job is to extract high-velocity patterns from social media profile URLs. Always return data in strict JSON format.",
+        generationConfig: {
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.OBJECT,
@@ -49,7 +60,7 @@ export default function Competitors() {
         }
       });
 
-      const data = JSON.parse(response.text || "{}");
+      const data = JSON.parse(response.response.text() || "{}");
       setInsight(data);
 
       if (auth.currentUser) {

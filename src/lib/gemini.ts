@@ -1,6 +1,14 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+function getAI() {
+  const apiKey = process.env.GEMINI_API_KEY || "dummy-key";
+  if (!process.env.GEMINI_API_KEY) {
+    console.warn("GEMINI_API_KEY is missing. AI features will be limited.");
+  }
+  return new (GoogleGenAI as any)({ apiKey });
+}
+
+const ai = getAI();
 
 export interface HashtagResult {
   hashtags: string[];
@@ -16,16 +24,17 @@ export interface AnalysisResponse {
 }
 
 export async function generateHashtags(content: string, imageBase64?: string): Promise<AnalysisResponse> {
-  const model = "gemini-3-flash-preview";
-  
-  const systemInstruction = `You are an elite social media growth expert. 
+  const model = (ai as any).getGenerativeModel({ 
+    model: "gemini-3-flash-preview",
+    systemInstruction: `You are an elite social media growth expert. 
 Analyze the provided content (text and/or image) and generate top-trending, relevant hashtags and tags.
 Organize results into three categories: 
 1. Viral (high volume, high competition)
 2. Niche (medium volume, highly relevant)
 3. Reach (high growth potential).
 Provide a brief prediction of reach for these tags.
-Return exactly three categories in a JSON format.`;
+Return exactly three categories in a JSON format.`
+  });
 
   const contents: any[] = [{ text: `Content to analyze: ${content}` }];
   
@@ -38,11 +47,9 @@ Return exactly three categories in a JSON format.`;
     });
   }
 
-  const response = await ai.models.generateContent({
-    model,
+  const response = await model.generateContent({
     contents,
-    config: {
-      systemInstruction,
+    generationConfig: {
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -68,6 +75,6 @@ Return exactly three categories in a JSON format.`;
     }
   });
 
-  const text = response.text || "{}";
+  const text = response.response.text() || "{}";
   return JSON.parse(text) as AnalysisResponse;
 }

@@ -1,4 +1,4 @@
-import {StrictMode, Component, ErrorInfo, ReactNode} from 'react';
+import React, {StrictMode, ErrorInfo, ReactNode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
@@ -9,33 +9,29 @@ if (typeof (window as any).process === 'undefined') {
   (window as any).process = { env: {} };
 }
 
-class ErrorBoundary extends Component<{children: ReactNode}, {hasError: boolean, error: Error | null}> {
-  public props: {children: ReactNode} = { children: null };
-  public state: {hasError: boolean, error: Error | null} = {
-    hasError: false,
-    error: null
-  };
-
-  constructor(props: {children: ReactNode}) {
+class ErrorBoundary extends (React.Component as any) {
+  constructor(props: any) {
     super(props);
+    this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError(error: Error) {
+  static getDerivedStateFromError(error: any) {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  componentDidCatch(error: any, errorInfo: ErrorInfo) {
     console.error("Critical Runtime Error:", error, errorInfo);
   }
 
   render() {
-    if (this.state.hasError) {
+    const { hasError, error } = this.state as any;
+    if (hasError) {
       return (
         <div className="min-h-screen bg-[#09090b] text-white flex flex-col items-center justify-center p-10 text-center">
           <h1 className="text-4xl font-bold text-red-500 mb-4">System Failure</h1>
           <p className="text-white/60 mb-6 max-w-md">The neural strategist encountered a fatal error during initialization.</p>
           <pre className="bg-black p-4 rounded-xl text-xs text-red-400 overflow-auto max-w-full">
-            {this.state.error?.message}
+            {error?.message || String(error)}
           </pre>
           <button 
             onClick={() => window.location.reload()}
@@ -46,7 +42,7 @@ class ErrorBoundary extends Component<{children: ReactNode}, {hasError: boolean,
         </div>
       );
     }
-    return this.props.children;
+    return (this.props as any).children;
   }
 }
 
