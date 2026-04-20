@@ -44,9 +44,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               displayName: authUser.displayName,
               isElite: false,
               createdAt: new Date().toISOString()
-            });
+            }).catch(e => console.error("Error creating user doc", e));
             setIsElite(false);
           }
+          setLoading(false);
+        }, (error) => {
+          console.error("Firestore user snapshot error:", error);
+          // Still set loading to false so the app can render (maybe in a limited state)
           setLoading(false);
         });
       } else {

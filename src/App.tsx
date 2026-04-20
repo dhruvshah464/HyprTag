@@ -215,8 +215,17 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-bg-main flex items-center justify-center">
-         <Loader2 className="w-10 h-10 text-brand-primary animate-spin" />
+      <div className="min-h-screen bg-[#000000] flex flex-col items-center justify-center gap-6">
+         <div className="relative">
+            <div className="w-16 h-16 border-t-2 border-brand-accent rounded-full animate-spin" />
+            <div className="absolute inset-0 flex items-center justify-center">
+               <Hash className="w-6 h-6 text-brand-accent animate-pulse" />
+            </div>
+         </div>
+         <div className="space-y-2 text-center">
+            <h2 className="text-xl font-display font-bold italic tracking-tighter text-white">Initializing Protocols</h2>
+            <p className="text-[10px] font-bold text-white/20 uppercase tracking-[0.3em]">Connecting to Neural Node...</p>
+         </div>
       </div>
     );
   }
