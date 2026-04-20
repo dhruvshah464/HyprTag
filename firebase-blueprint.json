@@ -1,0 +1,77 @@
+{
+  "entities": {
+    "Generation": {
+      "title": "Hashtag Generation",
+      "description": "A record of a hashtag generation event",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "content": { "type": "string" },
+        "result": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "reach": { "type": "integer" },
+        "likes": { "type": "integer" },
+        "comments": { "type": "integer" }
+      },
+      "required": ["userId", "content", "result", "createdAt"]
+    },
+    "ScheduledPost": {
+      "title": "Scheduled Post",
+      "description": "A post scheduled for future publication",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "content": { "type": "string" },
+        "hashtags": { "type": "array", "items": { "type": "string" } },
+        "platforms": { "type": "array", "items": { "type": "string" } },
+        "scheduledTime": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["idea", "draft", "scheduled", "published", "pending"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "content", "hashtags", "scheduledTime", "status"]
+    },
+    "User": {
+      "title": "User Profile",
+      "description": "The user's account and subscription details",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "isElite": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "isElite"]
+    },
+    "CompetitorInsight": {
+      "title": "Competitor Insight",
+      "description": "Analysis of a competitor's profile",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "profileUrl": { "type": "string" },
+        "insight": { "type": "string" },
+        "trendingTags": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "profileUrl", "insight", "trendingTags"]
+    }
+  },
+  "firestore": {
+    "generations": {
+      "schema": "Generation",
+      "description": "Collection of all hashtag generations"
+    },
+    "scheduledPosts": {
+      "schema": "ScheduledPost",
+      "description": "Collection of posts waiting to be published"
+    },
+    "users": {
+       "schema": "User",
+       "description": "Registered user profiles and settings"
+    },
+    "competitorInsights": {
+      "schema": "CompetitorInsight",
+      "description": "Analysis results of competitor profiles"
+    }
+  }
+}

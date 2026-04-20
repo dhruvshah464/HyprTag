@@ -1,0 +1,176 @@
+import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { 
+  Calendar as CalendarIcon, 
+  Clock, 
+  CheckCircle2, 
+  AlertCircle,
+  MoreVertical,
+  Trash2,
+  ExternalLink,
+  Instagram,
+  Twitter,
+  Facebook,
+  Plus,
+  ArrowUpRight
+} from 'lucide-react';
+import { cn } from '../lib/utils';
+import { db, auth, handleFirestoreError } from '../lib/firebase';
+import { collection, query, where, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
+import { format } from 'date-fns';
+import { NavLink } from 'react-router-dom';
+
+export default function Schedule() {
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!auth.currentUser) return;
+
+    try {
+      const q = query(
+        collection(db, "scheduledPosts"),
+        where("userId", "==", auth.currentUser.uid),
+        orderBy("scheduledTime", "desc") // Latest first for calendar view
+      );
+
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setPosts(data);
+        setLoading(false);
+      }, (err) => {
+        handleFirestoreError(err, 'list', 'scheduledPosts');
+      });
+
+      return () => unsubscribe();
+    } catch (e) {
+      console.error(e);
+      setLoading(false);
+    }
+  }, []);
+
+  const deletePost = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "scheduledPosts", id));
+    } catch (e) {
+      handleFirestoreError(e, 'delete', 'scheduledPosts');
+    }
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto space-y-16 pb-20">
+      <div className="flex flex-col md:flex-row justify-between items-end gap-6 text-left">
+        <div className="space-y-4">
+           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest text-white/40">
+              <CalendarIcon className="w-3 h-3 text-brand-accent" />
+              Strategic Timeline
+           </div>
+           <h1 className="font-display font-bold text-4xl italic lowercase tracking-tighter">Content<span className="text-brand-accent">Calendar</span></h1>
+           <p className="text-white/40 max-w-sm">Manage your upcoming viral triggers and automated deployment schedule.</p>
+        </div>
+        <NavLink to="/" className="btn-hypr-primary h-12 px-8 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+           <Plus className="w-4 h-4" /> New Sequence
+        </NavLink>
+      </div>
+
+      <div className="space-y-8">
+        <AnimatePresence mode="popLayout">
+          {posts.length === 0 && !loading ? (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="hypr-card p-24 text-center flex flex-col items-center border-dashed border-white/5"
+            >
+              <div className="w-20 h-20 rounded-[2rem] bg-white/[0.02] border border-white/5 flex items-center justify-center mb-8">
+                <CalendarIcon className="w-8 h-8 text-white/10" />
+              </div>
+              <p className="text-sm font-bold text-white/20 uppercase tracking-[0.3em] mb-4">No Active Deployments</p>
+              <NavLink to="/" className="text-brand-accent text-xs font-bold uppercase tracking-widest hover:underline">Initiate Strategic Analysis</NavLink>
+            </motion.div>
+          ) : (
+            posts.map((post, idx) => {
+              const date = post.scheduledTime ? new Date(post.scheduledTime) : null;
+              return (
+                <motion.div 
+                  key={post.id}
+                  layout
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="hypr-card p-8 flex flex-col md:flex-row items-center gap-10 group hover:border-white/10 transition-all relative overflow-hidden"
+                >
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/[0.01] rounded-full blur-3xl -z-10" />
+                  
+                  {date ? (
+                    <div className="w-full md:w-44 h-44 bg-white/[0.02] rounded-[1.5rem] border border-white/5 flex flex-col items-center justify-center p-6 text-center shrink-0 group-hover:bg-white/[0.04] transition-colors">
+                      <p className="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] mb-2 font-mono">
+                        {format(date, 'EEEE')}
+                      </p>
+                      <p className="text-4xl font-display font-bold tracking-tighter">
+                        {format(date, 'MMM d')}
+                      </p>
+                      <div className="mt-4 px-3 py-1 bg-brand-accent/10 border border-brand-accent/20 rounded-full">
+                        <p className="text-[10px] font-bold text-brand-accent uppercase tracking-widest">
+                          {format(date, 'h:mm a')}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full md:w-44 h-44 bg-white/[0.02] rounded-[1.5rem] border border-white/5 flex flex-col items-center justify-center p-6 text-center shrink-0 grayscale opacity-40">
+                       <Clock className="w-8 h-8 text-white/20 mb-4" />
+                       <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Awaiting Date</p>
+                    </div>
+                  )}
+
+                  <div className="flex-grow space-y-6 w-full">
+                    <div className="flex justify-between items-start">
+                      <div className="flex gap-2.5">
+                         {(post.platforms || []).map((p: string) => (
+                           <div key={p} className="p-2 bg-white/5 rounded-lg border border-white/5 grayscale group-hover:grayscale-0 transition-all">
+                             {p === 'Instagram' && <Instagram className="w-4 h-4 text-pink-500" />}
+                             {p === 'Twitter' && <Twitter className="w-4 h-4 text-sky-400" />}
+                             {p === 'Facebook' && <Facebook className="w-4 h-4 text-blue-600" />}
+                           </div>
+                         ))}
+                      </div>
+                      <button 
+                        onClick={() => deletePost(post.id)} 
+                        className="opacity-0 group-hover:opacity-100 p-2.5 bg-red-500/5 hover:bg-red-500/20 text-red-500/40 hover:text-red-500 rounded-[1rem] border border-transparent hover:border-red-500/20 transition-all transform hover:scale-110"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-2">
+                       <h4 className="text-xl font-bold tracking-tight">{post.content || "Neural Signal Analysis"}</h4>
+                       <div className="flex flex-wrap gap-2 pt-2">
+                         {(post.hashtags || []).slice(0, 6).map((tag: string, i: number) => (
+                           <span key={i} className="text-[10px] font-bold text-white/20 uppercase tracking-widest bg-white/[0.02] px-2.5 py-1 rounded-md border border-white/5 hover:text-white transition-colors cursor-default">#{tag.replace('#','')}</span>
+                         ))}
+                         {(post.hashtags || []).length > 6 && <span className="text-[10px] text-white/10 font-bold uppercase py-1">+{post.hashtags.length - 6} more signals</span>}
+                       </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-end gap-10 shrink-0">
+                    <div className={cn(
+                      "flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border shadow-xl bg-black",
+                      post.status === "pending" || post.status === "scheduled" ? "border-amber-500/20 text-amber-500" : "border-emerald-500/20 text-emerald-500"
+                    )}>
+                      {post.status === "pending" || post.status === "scheduled" ? <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                      {post.status || 'Active'}
+                    </div>
+                    <button className="flex items-center gap-2 text-[10px] font-bold text-white/20 hover:text-white uppercase tracking-[0.2em] transition-all group/btn">
+                      Preview Signal <ArrowUpRight className="w-3 h-3 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
+                    </button>
+                  </div>
+                </motion.div>
+              );
+            })
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
