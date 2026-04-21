@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Sparkles, 
@@ -13,14 +13,17 @@ import {
   AlertCircle,
   ImagePlus,
   ArrowRight,
-  CheckCircle2
+  CheckCircle2,
+  ShieldAlert
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { generateHashtags, AnalysisResponse } from '../lib/gemini';
 import { db, auth, handleFirestoreError } from '../lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getCountFromServer } from 'firebase/firestore';
+import { useAuth } from '../lib/auth';
 
 export default function Generator() {
+  const { isElite, user } = useAuth();
   const [content, setContent] = useState('');
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -28,7 +31,22 @@ export default function Generator() {
   const [copying, setCopying] = useState<string | null>(null);
   const [scheduling, setScheduling] = useState(false);
   const [scheduleDate, setScheduleDate] = useState('');
+  const [usageCount, setUsageCount] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    async function checkUsage() {
+      if (!user || isElite) return;
+      try {
+        const q = query(collection(db, "generations"), where("userId", "==", user.uid));
+        const snapshot = await getCountFromServer(q);
+        setUsageCount(snapshot.data().count);
+      } catch (e) {
+        console.error("Error checking usage:", e);
+      }
+    }
+    checkUsage();
+  }, [user, isElite]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -41,6 +59,12 @@ export default function Generator() {
 
   const handleAnalyze = async () => {
     if (!content && !image) return;
+    
+    if (!isElite && usageCount !== null && usageCount >= 5) {
+      alert("Neural limit reached. Upgrade to Elite for unlimited strategic extraction.");
+      return;
+    }
+
     setLoading(true);
     try {
       const data = await generateHashtags(content, image || undefined);
@@ -57,6 +81,8 @@ export default function Generator() {
             likes: Math.floor(Math.random() * 200) + 20,
             comments: Math.floor(Math.random() * 30) + 5
           });
+          // Update local count
+          if (usageCount !== null) setUsageCount(prev => (prev || 0) + 1);
         } catch (e) {
           handleFirestoreError(e, 'create', 'generations');
         }
@@ -114,6 +140,26 @@ export default function Generator() {
           <p className="text-lg md:text-xl text-white/50 max-w-xl mx-auto font-light leading-relaxed font-sans italic">
             "HyprTags uses proprietary neural models to predict hashtag velocity and audience resonance in real-time."
           </p>
+
+          {!isElite && usageCount !== null && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="pt-4"
+            >
+              <div className="inline-flex flex-col items-center gap-2">
+                 <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-white/30">
+                    Neural Capacity: <span className={cn(usageCount >= 5 ? "text-red-400" : "text-brand-accent")}>{usageCount}/5</span>
+                 </div>
+                 <div className="w-32 h-1 bg-white/5 rounded-full overflow-hidden">
+                    <div 
+                      className={cn("h-full transition-all duration-500", usageCount >= 5 ? "bg-red-500" : "bg-brand-accent")}
+                      style={{ width: `${Math.min((usageCount / 5) * 100, 100)}%` }}
+                    />
+                 </div>
+              </div>
+            </motion.div>
+          )}
         </div>
       </div>
 

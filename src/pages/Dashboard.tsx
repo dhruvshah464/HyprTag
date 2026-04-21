@@ -27,7 +27,7 @@ import { cn } from '../lib/utils';
 import { Link } from 'react-router-dom';
 import { db, auth, handleFirestoreError } from '../lib/firebase';
 import { useAuth } from '../lib/auth';
-import { collection, query, where, orderBy, onSnapshot, limit, Timestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, limit, Timestamp, getCountFromServer } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { 
   AreaChart, 
@@ -56,6 +56,8 @@ export default function Dashboard() {
   const [competitors, setCompetitors] = useState<any[]>([]);
   const [scheduled, setScheduled] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [usageStats, setUsageStats] = useState({ gens: 0, intel: 0 });
 
   useEffect(() => {
     if (!auth.currentUser) return;
@@ -96,8 +98,24 @@ export default function Dashboard() {
       }, (err) => handleFirestoreError(err, 'list', 'competitorInsights'))
     ];
 
+    async function fetchUsage() {
+      if (!auth.currentUser || isElite) return;
+      try {
+        const qGens = query(collection(db, "generations"), where("userId", "==", auth.currentUser.uid));
+        const qInt = query(collection(db, "competitorInsights"), where("userId", "==", auth.currentUser.uid));
+        const [sGens, sInt] = await Promise.all([
+          getCountFromServer(qGens),
+          getCountFromServer(qInt)
+        ]);
+        setUsageStats({ gens: sGens.data().count, intel: sInt.data().count });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    fetchUsage();
+
     return () => unsubs.forEach(unsub => unsub());
-  }, []);
+  }, [auth.currentUser, isElite]);
 
   const totalReach = stats.reduce((acc, curr) => acc + (curr.reach || 0), 0);
   const pipelineIdeas = tasks.filter(t => t.status === 'idea').length;
@@ -128,6 +146,19 @@ export default function Dashboard() {
            </div>
            <h1 className="font-display font-bold text-5xl italic lowercase tracking-tighter text-white">Command<span className="text-brand-accent">Center</span></h1>
            <p className="text-white/40 max-w-sm">Synchronizing your multi-platform growth signals into a single unified objective.</p>
+           
+           {!isElite && (
+              <div className="flex gap-6 pt-2">
+                 <div className="space-y-1">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-white/20">Generations Left</p>
+                    <p className="text-sm font-bold text-brand-accent">{Math.max(5 - usageStats.gens, 0)}/5</p>
+                 </div>
+                 <div className="space-y-1 border-l border-white/5 pl-6">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-white/20">Pulse Scans Left</p>
+                    <p className="text-sm font-bold text-brand-accent">{Math.max(3 - usageStats.intel, 0)}/3</p>
+                 </div>
+              </div>
+           )}
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 w-full md:w-auto">
            <QuickAction to="/generator" icon={Zap} label="Init Cluster" />

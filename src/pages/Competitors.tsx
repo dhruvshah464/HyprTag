@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Users, 
@@ -16,7 +16,9 @@ import {
 } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
 import { db, auth, handleFirestoreError } from '../lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getCountFromServer } from 'firebase/firestore';
+import { useAuth } from '../lib/auth';
+import { cn } from '../lib/utils';
 
 function getAI() {
   const apiKey = process.env.GEMINI_API_KEY || "dummy-key";
@@ -29,12 +31,34 @@ function getAI() {
 const ai = getAI();
 
 export default function Competitors() {
+  const { isElite, user } = useAuth();
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [insight, setInsight] = useState<any | null>(null);
+  const [usageCount, setUsageCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    async function checkUsage() {
+      if (!user || isElite) return;
+      try {
+        const q = query(collection(db, "competitorInsights"), where("userId", "==", user.uid));
+        const snapshot = await getCountFromServer(q);
+        setUsageCount(snapshot.data().count);
+      } catch (e) {
+        console.error("Error checking usage:", e);
+      }
+    }
+    checkUsage();
+  }, [user, isElite]);
 
   const handleAnalyze = async () => {
     if (!url) return;
+    
+    if (!isElite && usageCount !== null && usageCount >= 3) {
+      alert("Competitor intelligence limit reached. Elite status required for deep infiltration.");
+      return;
+    }
+
     setLoading(true);
     try {
       const model = (ai as any).getGenerativeModel({
@@ -72,6 +96,7 @@ export default function Competitors() {
             trendingTags: data.effectiveHashtags,
             createdAt: serverTimestamp()
           });
+          if (usageCount !== null) setUsageCount(prev => (prev || 0) + 1);
         } catch (e) {
           handleFirestoreError(e, 'create', 'competitorInsights');
         }
@@ -102,6 +127,26 @@ export default function Competitors() {
           <p className="text-lg md:text-xl text-white/40 max-w-xl mx-auto font-light leading-relaxed">
             Deconstruct competitor growth algorithms. Input any profile URL to visualize their proprietary hashtag strategy.
           </p>
+
+          {!isElite && usageCount !== null && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="pt-4"
+            >
+              <div className="inline-flex flex-col items-center gap-2">
+                 <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-white/30">
+                    Intelligence Slots: <span className={cn(usageCount >= 3 ? "text-red-400" : "text-brand-accent")}>{usageCount}/3</span>
+                 </div>
+                 <div className="w-32 h-1 bg-white/5 rounded-full overflow-hidden">
+                    <div 
+                      className={cn("h-full transition-all duration-500", usageCount >= 3 ? "bg-red-500" : "bg-brand-accent")}
+                      style={{ width: `${Math.min((usageCount / 3) * 100, 100)}%` }}
+                    />
+                 </div>
+              </div>
+            </motion.div>
+          )}
         </div>
       </div>
 

@@ -16,6 +16,8 @@ interface AuthContextType {
   login: () => Promise<void>;
   logout: () => Promise<void>;
   upgradeToElite: () => Promise<void>;
+  isLoggingIn: boolean;
+  authError: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,6 +26,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isElite, setIsElite] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     let unsubFirestore: (() => void) | undefined;
@@ -66,12 +70,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async () => {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    setIsLoggingIn(true);
+    setAuthError(null);
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      await signInWithPopup(auth, provider);
+    } catch (error: any) {
+      console.error("Login Error:", error);
+      setAuthError(error.message || "Failed to initialize secure session.");
+    } finally {
+      setIsLoggingIn(false);
+    }
   };
 
   const logout = async () => {
-    await signOut(auth);
+    setLoading(true);
+    try {
+      await signOut(auth);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const upgradeToElite = async () => {
@@ -81,7 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isElite, login, logout, upgradeToElite }}>
+    <AuthContext.Provider value={{ user, loading, isElite, login, logout, upgradeToElite, isLoggingIn, authError }}>
       {children}
     </AuthContext.Provider>
   );
