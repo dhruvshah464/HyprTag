@@ -11,7 +11,9 @@ import {
   RefreshCw,
   Cpu,
   ArrowUpRight,
-  Sparkles
+  Sparkles,
+  Activity,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../lib/auth';
@@ -146,6 +148,62 @@ export default function NeuralGuard() {
          )}
       </div>
 
+      {/* Elite Monitor Section */}
+      {isElite && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-8"
+        >
+           <div className="flex justify-between items-center px-4">
+              <h3 className="text-xs font-bold uppercase tracking-[0.4em] text-slate-400">Tactical Shadow Overwatch</h3>
+              <div className="flex items-center gap-4">
+                 <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Global Nodes Online
+                 </span>
+                 <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Latency: 14ms</span>
+              </div>
+           </div>
+
+           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 text-left">
+              <div className="lg:col-span-2 hypr-card p-0 bg-slate-900 border-slate-800 shadow-2xl relative overflow-hidden h-[400px]">
+                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <motion.div 
+                      animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.3, 0.1] }}
+                      transition={{ duration: 4, repeat: Infinity }}
+                      className="w-[500px] h-[500px] border border-brand-accent/30 rounded-full"
+                    />
+                    <div className="w-4 h-4 bg-brand-accent rounded-full shadow-[0_0_20px_rgba(96,165,250,0.8)]" />
+                 </div>
+
+                 <div className="relative z-10 p-10 h-full flex flex-col justify-between">
+                    <div className="space-y-1">
+                       <h4 className="text-xs font-bold text-brand-accent uppercase tracking-[0.3em] font-mono">Neural Suppression Map</h4>
+                       <p className="text-[10px] text-slate-500 font-light italic tracking-tight">"Strategic signal scanning across 14 geographic data nodes."</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                       <MonitoringNode label="NA Cluster" strength="98%" status="Nominal" />
+                       <MonitoringNode label="EU Segment" strength="94%" status="Optimal" />
+                       <MonitoringNode label="APAC Hub" strength="89%" status="Nominal" />
+                       <MonitoringNode label="Global Sync" strength="100%" status="Locked" />
+                    </div>
+                 </div>
+              </div>
+
+              <div className="hypr-card p-8 bg-white border-slate-200 space-y-6 text-left">
+                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-4">Live Threat Stream</h4>
+                 <div className="space-y-4">
+                    <ThreatItem tag="trending" type="Viral Decelerator" risk="Critical" />
+                    <ThreatItem tag="marketing" type="Logic Sync Error" risk="Low" />
+                    <ThreatItem tag="neural" type="None Detected" risk="Zero" isSafe />
+                    <ThreatItem tag="growth" type="Suppression Ghost" risk="Moderate" />
+                 </div>
+              </div>
+           </div>
+        </motion.div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
          <div className="hypr-card p-10 space-y-6 bg-white border-slate-200 shadow-sm text-left">
             <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-slate-400">Security Sub-Routines</h3>
@@ -189,6 +247,33 @@ function SecurityItem({ icon: Icon, title, status }: any) {
           <span className="text-xs font-bold text-slate-700 tracking-tight">{title}</span>
        </div>
        <span className="text-[9px] font-mono font-bold text-emerald-500 uppercase">{status}</span>
+    </div>
+  );
+}
+
+function MonitoringNode({ label, strength, status }: { label: string, strength: string, status: string }) {
+  return (
+    <div className="p-4 bg-slate-800/50 border border-slate-700 rounded-xl text-left space-y-1">
+       <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">{label}</p>
+       <p className="text-lg font-display font-bold text-white italic">{strength}</p>
+       <p className="text-[8px] font-bold text-brand-accent uppercase">{status}</p>
+    </div>
+  );
+}
+
+function ThreatItem({ tag, type, risk, isSafe }: { tag: string, type: string, risk: string, isSafe?: boolean }) {
+  return (
+    <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-xl">
+       <div className="space-y-0.5">
+          <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest font-mono">#{tag}</p>
+          <p className="text-xs font-bold text-slate-800 tracking-tight">{type}</p>
+       </div>
+       <div className={cn(
+         "px-2 py-1 rounded-lg border text-[8px] font-bold uppercase",
+         isSafe ? "bg-emerald-50 border-emerald-100 text-emerald-500" : "bg-red-50 border-red-100 text-red-500"
+       )}>
+          {risk}
+       </div>
     </div>
   );
 }

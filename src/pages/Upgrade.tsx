@@ -45,7 +45,7 @@ export default function Upgrade() {
       const orderResponse = await fetch('/api/razorpay/order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: 9, currency: "INR" }),
+        body: JSON.stringify({ amount: 749, currency: "INR" }),
       });
 
       if (!orderResponse.ok) throw new Error("Failed to initialize tactical order.");
@@ -202,7 +202,7 @@ export default function Upgrade() {
                         <h3 className="text-4xl font-display font-bold italic tracking-tight text-slate-900">Elite Monthly</h3>
                      </div>
                      <div className="text-right">
-                        <p className="text-4xl font-display font-medium text-slate-900">$9<span className="text-lg text-slate-400">/mo</span></p>
+                        <p className="text-4xl font-display font-medium text-slate-900">₹749<span className="text-lg text-slate-400">/mo</span></p>
                      </div>
                   </div>
 

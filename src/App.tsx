@@ -19,7 +19,8 @@ import {
   Zap,
   MoreVertical,
   Layers,
-  ShieldCheck
+  ShieldCheck,
+  Cpu
 } from 'lucide-react';
 import { cn } from './lib/utils';
 import { useAuth } from './lib/auth';
@@ -34,6 +35,8 @@ import Connections from './pages/Connections';
 import Automations from './pages/Automations';
 import SettingsPage from './pages/Settings';
 import Onboarding from './pages/Onboarding';
+import Landing from './pages/Landing';
+import HowItWorks from './pages/HowItWorks';
 
 import Upgrade from './pages/Upgrade';
 import NeuralGuard from './pages/NeuralGuard';
@@ -136,6 +139,9 @@ const UserLayout = ({ children }: { children: React.ReactNode }) => {
           <NavItem to="/automations" icon={Zap} label={isCollapsed ? "" : "Workflow Automations"} onClick={closeMobile} />
           <NavItem to="/connections" icon={Globe} label={isCollapsed ? "" : "Social Hub"} onClick={closeMobile} />
           <NavItem to="/analytics" icon={BarChart3} label={isCollapsed ? "" : "Performance"} onClick={closeMobile} />
+
+          <div className="mt-8 mb-4 h-px bg-slate-100 mx-4" />
+          <NavItem to="/how-it-works" icon={Cpu} label={isCollapsed ? "" : "Protocol Guide"} onClick={closeMobile} />
         </nav>
 
         <div className="pt-6 border-t border-slate-100 mt-auto overflow-hidden">
@@ -213,7 +219,7 @@ const UserLayout = ({ children }: { children: React.ReactNode }) => {
 };
 
 export default function App() {
-  const { user, loading, onboarded } = useAuth();
+  const { user, loading, onboarded, is2FAVerified } = useAuth();
 
   if (loading) {
     return (
@@ -235,17 +241,20 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
-        <Route path="/onboarding" element={user ? (!onboarded ? <Onboarding /> : <Navigate to="/" />) : <Navigate to="/login" />} />
-        <Route path="/elite-onboarding" element={user ? <EliteOnboarding /> : <Navigate to="/login" />} />
+        <Route path="/" element={!user ? <Landing /> : <Navigate to="/dashboard" />} />
+        <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="/login" element={!user || !is2FAVerified ? <Login /> : <Navigate to="/dashboard" />} />
+        <Route path="/onboarding" element={user && is2FAVerified ? (!onboarded ? <Onboarding /> : <Navigate to="/dashboard" />) : <Navigate to="/login" />} />
+        <Route path="/elite-onboarding" element={user && is2FAVerified ? <EliteOnboarding /> : <Navigate to="/login" />} />
         <Route path="*" element={
-          user ? (
+          user && is2FAVerified ? (
             !onboarded ? (
               <Navigate to="/onboarding" />
             ) : (
               <UserLayout>
                 <Routes>
-                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/" element={<Navigate to="/dashboard" />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/generator" element={<Generator />} />
                   <Route path="/competitors" element={<Competitors />} />
                   <Route path="/planner" element={<Planner />} />

@@ -14,7 +14,9 @@ import {
   Linkedin,
   MessageCircle,
   Zap,
-  Rocket
+  Rocket,
+  Loader2,
+  Lock
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { cn } from '../lib/utils';
@@ -33,9 +35,26 @@ export default function Onboarding() {
     twitter: '',
     linkedin: ''
   });
+  const [verificationCode, setVerificationCode] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [verified, setVerified] = useState(false);
+
+  const hasSocials = Object.values(socialHandles).some(v => typeof v === 'string' && v.length > 0);
 
   const handleNext = () => setStep(s => s + 1);
   const handleBack = () => setStep(s => s - 1);
+
+  const handleVerify = async () => {
+    setVerifying(true);
+    await new Promise(r => setTimeout(r, 2000));
+    if (verificationCode === 'HYPR-777') {
+      setVerified(true);
+      setStep(4);
+    } else {
+      alert("Strategic hand-shake failed. Use code HYPR-777 for simulation.");
+    }
+    setVerifying(false);
+  };
 
   const finish = async () => {
     // Generate connections object based on which handles were filled
@@ -73,7 +92,7 @@ export default function Onboarding() {
       >
         {/* Progress Rail */}
         <div className="flex gap-2">
-           {[1, 2, 3].map(i => (
+           {[1, 2, 3, 4].map(i => (
              <div key={i} className={cn("h-1 flex-grow rounded-full transition-all duration-500", i <= step ? "bg-brand-accent" : "bg-slate-100")} />
            ))}
         </div>
@@ -89,7 +108,7 @@ export default function Onboarding() {
             >
               <div className="space-y-4 text-left">
                  <h2 className="text-4xl font-display font-bold italic tracking-tighter text-slate-900">Initialize <span className="text-brand-accent">Identity.</span></h2>
-                 <p className="text-slate-500 font-light">Establish your digital presence within the HyprTags neural network.</p>
+                 <p className="text-slate-500 font-light italic">Establish your digital presence within the HyprTags neural network.</p>
               </div>
 
               <div className="space-y-8">
@@ -149,7 +168,7 @@ export default function Onboarding() {
             >
               <div className="space-y-4 text-left">
                  <h2 className="text-4xl font-display font-bold italic tracking-tighter text-slate-900">Authorize <span className="text-brand-accent">Endpoints.</span></h2>
-                 <p className="text-slate-500 font-light">Link your social nodes to enable background signal extraction.</p>
+                 <p className="text-slate-500 font-light italic">Compulsory social node linking required for strategic signal extraction.</p>
               </div>
 
               <div className="grid grid-cols-1 gap-4">
@@ -181,8 +200,12 @@ export default function Onboarding() {
 
               <div className="flex gap-4 pt-6">
                  <button onClick={handleBack} className="btn-hypr-secondary w-24 h-16 flex items-center justify-center border border-slate-200 hover:bg-slate-50 shadow-sm"><ArrowLeft className="w-5 h-5 text-slate-400" /></button>
-                 <button onClick={handleNext} className="btn-hypr-primary flex-grow h-16 flex items-center justify-center gap-3 text-sm tracking-widest uppercase shadow-xl shadow-brand-accent/20">
-                    Connect Nodes <ArrowRight className="w-4 h-4" />
+                 <button 
+                  disabled={!hasSocials}
+                  onClick={handleNext} 
+                  className="btn-hypr-primary flex-grow h-16 flex items-center justify-center gap-3 text-sm tracking-widest uppercase shadow-xl shadow-brand-accent/20 disabled:opacity-50"
+                >
+                    Initialize Strategic Verification <ArrowRight className="w-4 h-4" />
                  </button>
               </div>
             </motion.div>
@@ -191,6 +214,50 @@ export default function Onboarding() {
           {step === 3 && (
             <motion.div 
               key="step3"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="space-y-12"
+            >
+              <div className="space-y-4 text-left">
+                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 text-white text-[9px] font-bold uppercase tracking-widest">
+                    <Lock className="w-3 h-3 text-brand-accent" /> 2FA Neural Bridge
+                 </div>
+                 <h2 className="text-4xl font-display font-bold italic tracking-tighter text-slate-900">Security <span className="text-brand-accent">Handshake.</span></h2>
+                 <p className="text-slate-500 font-light italic leading-relaxed">
+                    A secure verification packet has been dispatched to your primary social endpoint. Enter the 7-digit strategic code below.
+                 </p>
+              </div>
+
+              <div className="space-y-6">
+                 <div className="space-y-3 text-left">
+                    <label className="hypr-label ml-1 text-slate-400">Strategic Verification Key</label>
+                    <input 
+                      type="text" 
+                      placeholder="HYPR-XXX"
+                      className="hypr-input w-full text-3xl font-display font-bold text-center tracking-[0.2em] py-6 bg-slate-50 border-slate-200 focus:bg-white text-slate-900 placeholder:opacity-20"
+                      value={verificationCode}
+                      onChange={(e) => setVerificationCode(e.target.value.toUpperCase())}
+                    />
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest text-center mt-4 italic">
+                      Trial sequence code: <span className="text-brand-accent">HYPR-777</span>
+                    </p>
+                 </div>
+
+                 <button 
+                  disabled={verifying || verificationCode.length < 5}
+                  onClick={handleVerify}
+                  className="btn-hypr-primary w-full h-18 text-sm flex items-center justify-center gap-4 transition-all shadow-xl shadow-brand-accent/20 disabled:opacity-50"
+                 >
+                    {verifying ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Finalize Encryption <Zap className="w-4 h-4 fill-current" /></>}
+                 </button>
+              </div>
+            </motion.div>
+          )}
+
+          {step === 4 && (
+            <motion.div 
+              key="step4"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               className="space-y-10 text-center"

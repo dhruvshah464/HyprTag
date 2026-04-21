@@ -175,6 +175,67 @@ export default function Dashboard() {
         <StatCard label="Strategic Score" value={stats.length > 0 ? "84" : "0"} change="/100" icon={Sparkles} isAccent />
       </div>
 
+      {/* Elite Viral Velocity Engine */}
+      {isElite && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="hypr-card p-10 bg-slate-900 border-slate-800 shadow-2xl relative overflow-hidden text-left"
+        >
+          <div className="absolute top-0 right-0 p-10 opacity-20 pointer-events-none">
+             <Zap className="w-64 h-64 text-brand-accent animate-pulse" />
+          </div>
+          
+          <div className="relative z-10 space-y-10">
+             <div className="flex justify-between items-start">
+                <div className="space-y-2">
+                   <div className="flex items-center gap-2 text-brand-accent font-mono text-[10px] tracking-[0.4em] font-bold uppercase">
+                      <div className="w-2 h-2 rounded-full bg-brand-accent animate-ping" /> Live Signal Extraction
+                   </div>
+                   <h2 className="text-4xl font-display font-bold italic tracking-tight text-white">Viral Velocity <span className="text-brand-accent">Engine</span></h2>
+                </div>
+                <div className="flex gap-4">
+                   <div className="text-right">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Global Velocity</p>
+                      <p className="text-xl font-display font-bold italic text-white">942.8 msg/s</p>
+                   </div>
+                </div>
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="md:col-span-2 h-[200px] bg-slate-800/50 rounded-2xl border border-slate-700 p-6 flex items-center justify-center relative group">
+                   <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="flex gap-1 items-end h-32">
+                         {[40, 70, 45, 90, 65, 80, 50, 95, 75, 60, 85, 55, 70, 40].map((h, i) => (
+                           <motion.div 
+                             key={i}
+                             initial={{ height: 0 }}
+                             animate={{ height: `${h}%` }}
+                             transition={{ duration: 1, delay: i * 0.05, repeat: Infinity, repeatType: 'reverse' }}
+                             className="w-4 bg-brand-accent/40 rounded-t-sm"
+                           />
+                         ))}
+                      </div>
+                   </div>
+                   <div className="relative z-10 text-center space-y-1">
+                      <p className="text-[10px] font-bold text-brand-accent uppercase tracking-[0.3em] font-mono">Real-time Pulse Detected</p>
+                      <p className="text-xs text-slate-400 font-light italic">"Neural pattern analysis confirms high-velocity growth potential in your tech-cluster."</p>
+                   </div>
+                </div>
+
+                <div className="space-y-4">
+                   <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">High-Signal Clusters</h3>
+                   <div className="space-y-3">
+                      <SignalPulse tag="neural" velocity="9.8/10" color="brand-accent" />
+                      <SignalPulse tag="growth" velocity="8.4/10" color="emerald-500" />
+                      <SignalPulse tag="strat" velocity="7.9/10" color="blue-400" />
+                   </div>
+                </div>
+             </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Trajectory Pane */}
@@ -395,6 +456,23 @@ function InsightSmall({ title, desc }: { title: string, desc: string }) {
     <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">{title}</p>
        <p className="text-xs font-bold text-slate-800">{desc}</p>
+    </div>
+  );
+}
+
+function SignalPulse({ tag, velocity, color }: { tag: string, velocity: string, color: string }) {
+  return (
+    <div className="flex items-center justify-between p-4 bg-slate-800/80 border border-slate-700/50 rounded-2xl group hover:border-brand-accent/30 transition-all">
+       <div className="flex items-center gap-4 text-left">
+          <div className={cn("w-2 h-2 rounded-full", `bg-${color}`)} />
+          <div className="space-y-0.5">
+             <p className="text-xs font-bold text-white tracking-tight">#{tag}</p>
+             <p className="text-[10px] text-slate-500 font-mono italic">VELOCITY_ID_{Math.floor(Math.random() * 9000 + 1000)}</p>
+          </div>
+       </div>
+       <div className="text-right">
+          <p className="text-xs font-bold text-brand-accent font-mono">{velocity}</p>
+       </div>
     </div>
   );
 }
