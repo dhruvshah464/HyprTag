@@ -9,13 +9,25 @@ import {
 import { auth, db } from './firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 
+interface UserProfile {
+  isElite: boolean;
+  onboarded: boolean;
+  displayName?: string;
+  niche?: string;
+  connections?: Record<string, boolean>;
+  socialHandles?: Record<string, string>;
+}
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   isElite: boolean;
+  onboarded: boolean;
+  profile: UserProfile | null;
   login: () => Promise<void>;
   logout: () => Promise<void>;
   upgradeToElite: () => Promise<void>;
+  completeOnboarding: (details: Partial<UserProfile>) => Promise<void>;
   isLoggingIn: boolean;
   authError: string | null;
 }
@@ -24,7 +36,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isElite, setIsElite] = useState(false);
+  const [onboarded, setOnboarded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -36,29 +50,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(authUser);
       
       if (authUser) {
-        // Subscribe to user document for Elite status
+        // Subscribe to user document for Elite status and onboarding
         const userRef = doc(db, 'users', authUser.uid);
         unsubFirestore = onSnapshot(userRef, (docSnap) => {
           if (docSnap.exists()) {
-            setIsElite(docSnap.data().isElite || false);
+            const data = docSnap.data() as UserProfile;
+            setProfile(data);
+            setIsElite(data.isElite || false);
+            setOnboarded(data.onboarded || false);
           } else {
             // Initialize user doc if it doesn't exist
-            setDoc(userRef, {
-              email: authUser.email,
-              displayName: authUser.displayName,
+            const initialProfile: UserProfile = {
               isElite: false,
+              onboarded: false,
+              displayName: authUser.displayName || '',
+              connections: {}
+            };
+            setDoc(userRef, {
+              ...initialProfile,
+              email: authUser.email,
               createdAt: new Date().toISOString()
             }).catch(e => console.error("Error creating user doc", e));
+            
+            setProfile(initialProfile);
             setIsElite(false);
+            setOnboarded(false);
           }
           setLoading(false);
         }, (error) => {
           console.error("Firestore user snapshot error:", error);
-          // Still set loading to false so the app can render (maybe in a limited state)
           setLoading(false);
         });
       } else {
+        setProfile(null);
         setIsElite(false);
+        setOnboarded(false);
         setLoading(false);
       }
     });
@@ -78,7 +104,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await signInWithPopup(auth, provider);
     } catch (error: any) {
       console.error("Login Error:", error);
-      setAuthError(error.message || "Failed to initialize secure session.");
+      if (error.code === 'auth/popup-blocked') {
+        setAuthError("Popup blocked by browser. Please enable popups or try opening HyprTags in a new tab.");
+      } else if (error.message?.includes('Cross-Origin-Opener-Policy')) {
+        setAuthError("Security policy conflict. Please open HyprTags in a NEW TAB to complete secure authentication.");
+      } else {
+        setAuthError(error.message || "Failed to initialize secure session.");
+      }
     } finally {
       setIsLoggingIn(false);
     }
@@ -99,8 +131,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await setDoc(userRef, { isElite: true }, { merge: true });
   };
 
+  const completeOnboarding = async (details: Partial<UserProfile>) => {
+    if (!user) return;
+    const userRef = doc(db, 'users', user.uid);
+    await setDoc(userRef, { ...details, onboarded: true }, { merge: true });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, isElite, login, logout, upgradeToElite, isLoggingIn, authError }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      isElite, 
+      onboarded, 
+      profile,
+      login, 
+      logout, 
+      upgradeToElite, 
+      completeOnboarding,
+      isLoggingIn, 
+      authError 
+    }}>
       {children}
     </AuthContext.Provider>
   );

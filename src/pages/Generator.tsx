@@ -77,9 +77,9 @@ export default function Generator() {
             content: content || "Image Analysis",
             result: data,
             createdAt: serverTimestamp(),
-            reach: Math.floor(Math.random() * 5000) + 1000,
-            likes: Math.floor(Math.random() * 200) + 20,
-            comments: Math.floor(Math.random() * 30) + 5
+            reach: 0,
+            likes: 0,
+            comments: 0
           });
           // Update local count
           if (usageCount !== null) setUsageCount(prev => (prev || 0) + 1);
@@ -127,17 +127,20 @@ export default function Generator() {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-[0.2em] text-white/50"
+          className={cn(
+            "inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-[0.2em]",
+            isElite ? "bg-emerald-50 border-emerald-100 text-emerald-500 shadow-sm" : "bg-slate-50 border-slate-100 text-slate-400 shadow-sm"
+          )}
         >
-          <Sparkles className="w-3 h-3 text-brand-accent" />
-          Neural Growth Engine
+          {isElite ? <ShieldAlert className="w-3 h-3 text-emerald-500" /> : <Sparkles className="w-3 h-3 text-brand-accent" />}
+          {isElite ? 'Elite Core Protocol Active' : 'Neural Growth Engine'}
         </motion.div>
         
         <div className="space-y-4">
           <h1 className="text-6xl md:text-8xl font-display font-bold leading-[0.85] tracking-tighter hypr-gradient-text px-4">
             Strategic <br /> Intelligence.
           </h1>
-          <p className="text-lg md:text-xl text-white/50 max-w-xl mx-auto font-light leading-relaxed font-sans italic">
+          <p className="text-lg md:text-xl text-slate-500 max-w-xl mx-auto font-light leading-relaxed font-sans italic">
             "HyprTags uses proprietary neural models to predict hashtag velocity and audience resonance in real-time."
           </p>
 
@@ -148,10 +151,10 @@ export default function Generator() {
               className="pt-4"
             >
               <div className="inline-flex flex-col items-center gap-2">
-                 <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-white/30">
-                    Neural Capacity: <span className={cn(usageCount >= 5 ? "text-red-400" : "text-brand-accent")}>{usageCount}/5</span>
+                 <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-300">
+                    Neural Capacity: <span className={cn(usageCount >= 5 ? "text-red-500" : "text-brand-accent")}>{usageCount}/5</span>
                  </div>
-                 <div className="w-32 h-1 bg-white/5 rounded-full overflow-hidden">
+                 <div className="w-32 h-1 bg-slate-100 rounded-full overflow-hidden">
                     <div 
                       className={cn("h-full transition-all duration-500", usageCount >= 5 ? "bg-red-500" : "bg-brand-accent")}
                       style={{ width: `${Math.min((usageCount / 5) * 100, 100)}%` }}
@@ -168,22 +171,22 @@ export default function Generator() {
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.1 }}
-        className="hypr-card max-w-4xl mx-auto border-white/5 shadow-2xl relative overflow-hidden group"
+        className="hypr-card max-w-4xl mx-auto border-slate-200 shadow-2xl relative overflow-hidden group bg-white"
       >
         <div className="absolute top-0 right-0 w-64 h-64 bg-brand-accent/5 rounded-full blur-[100px] -z-10 transition-all group-hover:bg-brand-accent/10" />
         
         <div className="space-y-10">
-          <div className="relative">
+          <div className="relative text-left">
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Describe your content vibes..."
-              className="w-full bg-transparent border-b border-white/5 px-0 py-4 text-2xl md:text-3xl font-medium outline-none focus:border-white/20 transition-all placeholder:text-white/10 min-h-[120px] resize-none font-display italic tracking-tighter"
+              className="w-full bg-transparent border-b border-slate-200 px-0 py-4 text-2xl md:text-3xl font-medium outline-none focus:border-brand-accent/30 transition-all placeholder:text-slate-300 min-h-[120px] resize-none font-display italic tracking-tighter text-slate-800"
             />
             {content && (
               <button 
                 onClick={() => setContent('')}
-                className="absolute right-0 top-6 p-2 text-white/20 hover:text-white transition-colors"
+                className="absolute right-0 top-6 p-2 text-slate-300 hover:text-slate-600 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -193,7 +196,7 @@ export default function Generator() {
           <div className="flex flex-col md:flex-row gap-6 items-center">
             {/* Visual Context Area */}
             <div className="flex-grow w-full">
-               <label className="flex items-center justify-center gap-4 w-full h-32 border-2 border-dashed border-white/5 rounded-3xl hover:border-white/10 hover:bg-white/[0.01] cursor-pointer transition-all group/upload relative overflow-hidden">
+               <label className="flex items-center justify-center gap-4 w-full h-32 border-2 border-dashed border-slate-200 rounded-3xl hover:border-brand-accent/20 hover:bg-slate-50/50 cursor-pointer transition-all group/upload relative overflow-hidden">
                   <input 
                     type="file" 
                     className="hidden" 
@@ -203,24 +206,24 @@ export default function Generator() {
                   />
                   {image ? (
                     <>
-                      <img src={image} alt="Context" className="absolute inset-0 w-full h-full object-cover opacity-50 blur-[2px] grayscale" />
-                      <div className="relative z-10 flex items-center gap-3 bg-black/40 px-4 py-2 rounded-xl backdrop-blur-md border border-white/10">
-                         <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                         <span className="font-bold text-xs uppercase tracking-widest text-emerald-400">Context Acquired</span>
+                      <img src={image} alt="Context" className="absolute inset-0 w-full h-full object-cover grayscale opacity-40 mix-blend-multiply" />
+                      <div className="relative z-10 flex items-center gap-3 bg-white/90 px-4 py-2 rounded-xl backdrop-blur-md border border-brand-accent/20 shadow-lg">
+                         <CheckCircle2 className="w-5 h-5 text-brand-accent" />
+                         <span className="font-bold text-xs uppercase tracking-widest text-brand-accent">Context Acquired</span>
                       </div>
                       <button 
                         onClick={(e) => { e.preventDefault(); setImage(null); }}
-                        className="absolute top-4 right-4 z-20 p-2 bg-black/40 rounded-full border border-white/10 hover:bg-brand-accent/20 transition-colors"
+                        className="absolute top-4 right-4 z-20 p-2 bg-white/90 rounded-full border border-slate-200 hover:bg-red-50 text-slate-500 hover:text-red-500 transition-colors shadow-sm"
                       >
                         <X className="w-4 h-4" />
                       </button>
                     </>
                   ) : (
                     <div className="flex flex-col items-center gap-3">
-                       <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center group-hover/upload:scale-110 transition-transform">
-                          <ImagePlus className="w-5 h-5 text-white/30" />
+                       <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center group-hover/upload:scale-110 transition-transform">
+                          <ImagePlus className="w-5 h-5 text-slate-400" />
                        </div>
-                       <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/20">Analyze Visuals</span>
+                       <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Analyze Visuals</span>
                     </div>
                   )}
                </label>
@@ -235,7 +238,7 @@ export default function Generator() {
                 <Loader2 className="w-8 h-8 animate-spin" />
               ) : (
                 <>
-                  <div className="w-10 h-10 rounded-full bg-black/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center group-hover:scale-110 transition-transform">
                     <ArrowRight className="w-6 h-6" />
                   </div>
                   <span className="text-[10px] font-bold uppercase tracking-widest">Execute</span>
@@ -254,18 +257,18 @@ export default function Generator() {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-12 max-w-6xl mx-auto"
           >
-             <div className="flex flex-col md:flex-row items-center justify-between gap-6 px-4">
+             <div className="flex flex-col md:flex-row items-center justify-between gap-6 px-4 text-left">
                 <div className="flex items-center gap-4">
-                   <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10">
+                   <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center border border-slate-200 shadow-sm">
                       <BarChart3 className="w-6 h-6 text-brand-accent" />
                    </div>
-                   <p className="text-lg text-white/60 font-light italic leading-relaxed max-w-xl">
+                   <p className="text-lg text-slate-600 font-light italic leading-relaxed max-w-xl">
                       {result.summary}
                    </p>
                 </div>
                 <button 
                   onClick={() => setScheduling(true)}
-                  className="btn-hypr-secondary h-12 px-8 text-xs font-bold uppercase tracking-widest flex items-center gap-3"
+                  className="btn-hypr-secondary h-12 px-8 text-xs font-bold uppercase tracking-widest flex items-center gap-3 shadow-sm"
                 >
                    <Calendar className="w-4 h-4" /> Schedule Deployment
                 </button>
@@ -278,37 +281,37 @@ export default function Generator() {
                    initial={{ opacity: 0, y: 20 }}
                    animate={{ opacity: 1, y: 0 }}
                    transition={{ delay: i * 0.1 }}
-                   className="hypr-card hypr-card-hover group border-white/10"
+                   className="hypr-card hypr-card-hover group border-slate-200 bg-white"
                  >
                    <div className="flex justify-between items-center mb-8">
                      <div className="space-y-1">
-                       <h3 className="text-xl font-bold tracking-tight">{res.category}</h3>
+                       <h3 className="text-xl font-bold tracking-tight text-slate-900">{res.category}</h3>
                        <p className="hypr-label">Probabilistic Reach</p>
                      </div>
                      <div className="flex flex-col items-end">
-                       <span className="text-3xl font-display font-bold text-white/80">{res.trendingScore}%</span>
-                       <div className="w-20 h-1 bg-white/5 rounded-full mt-2 overflow-hidden">
+                       <span className="text-3xl font-display font-bold text-slate-800">{res.trendingScore}%</span>
+                       <div className="w-20 h-1 bg-slate-100 rounded-full mt-2 overflow-hidden">
                           <motion.div 
                             initial={{ width: 0 }}
                             animate={{ width: `${res.trendingScore}%` }}
-                            className="h-full bg-brand-accent/50 transition-all duration-1000" 
+                            className="h-full bg-brand-accent transition-all duration-1000" 
                           />
                        </div>
                      </div>
                    </div>
                    <div className="flex flex-wrap gap-2.5 mb-10 min-h-[80px]">
                      {res.hashtags.map((tag, j) => (
-                       <span key={j} className="text-xs font-semibold text-white/70 hover:text-white cursor-pointer transition-colors bg-white/[0.03] px-3 py-1.5 rounded-lg border border-white/5 hover:border-white/10">
+                       <span key={j} className="text-xs font-semibold text-slate-600 hover:text-brand-accent cursor-pointer transition-colors bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-brand-accent/20">
                          #{tag.replace('#','')}
                        </span>
                      ))}
                    </div>
                    <button 
                      onClick={() => copyTags(res.hashtags)}
-                     className="w-full h-11 rounded-xl border border-white/5 bg-white/[0.02] font-bold text-[10px] uppercase tracking-[0.2em] text-white/20 hover:text-white hover:bg-white/5 transition-all flex items-center justify-center gap-2 group/copy"
+                     className="w-full h-11 rounded-xl border border-slate-100 bg-slate-50 font-bold text-[10px] uppercase tracking-[0.2em] text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all flex items-center justify-center gap-2 group/copy"
                    >
                       {copying === res.hashtags.join(' ') ? (
-                        <>Copied <Check className="w-3 h-3 text-emerald-400" /></>
+                        <>Copied <Check className="w-3 h-3 text-emerald-500" /></>
                       ) : (
                         <>Transfer Cluster <Copy className="w-3 h-3 opacity-0 group-hover/copy:opacity-100 transition-all" /></>
                       )}
@@ -323,16 +326,16 @@ export default function Generator() {
       {/* Scheduling Modal */}
       <AnimatePresence>
         {scheduling && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xl">
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }} 
               animate={{ opacity: 1, scale: 1, y: 0 }} 
               exit={{ opacity: 0, scale: 0.9, y: 20 }} 
-              className="hypr-card max-w-md w-full border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+              className="hypr-card max-w-md w-full border-slate-200 shadow-2xl bg-white p-12"
             >
               <div className="flex justify-between items-center mb-10">
-                 <h3 className="font-display font-bold text-3xl tracking-tighter">Schedule <span className="text-brand-accent">Deploy</span></h3>
-                 <button onClick={() => setScheduling(false)} className="p-2 text-white/20 hover:text-white transition-colors">
+                 <h3 className="font-display font-bold text-3xl tracking-tighter text-slate-900 text-left">Schedule <span className="text-brand-accent">Deploy</span></h3>
+                 <button onClick={() => setScheduling(false)} className="p-2 text-slate-300 hover:text-slate-600 transition-colors">
                     <X className="w-6 h-6" />
                  </button>
               </div>

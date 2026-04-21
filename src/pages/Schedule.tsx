@@ -60,13 +60,13 @@ export default function Schedule() {
   return (
     <div className="max-w-5xl mx-auto space-y-16 pb-20">
       <div className="flex flex-col md:flex-row justify-between items-end gap-6 text-left">
-        <div className="space-y-4">
-           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest text-white/40">
+        <div className="space-y-4 text-left">
+           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[10px] font-bold uppercase tracking-widest text-slate-400 shadow-sm">
               <CalendarIcon className="w-3 h-3 text-brand-accent" />
               Strategic Timeline
            </div>
-           <h1 className="font-display font-bold text-4xl italic lowercase tracking-tighter">Content<span className="text-brand-accent">Calendar</span></h1>
-           <p className="text-white/40 max-w-sm">Manage your upcoming viral triggers and automated deployment schedule.</p>
+           <h1 className="font-display font-bold text-4xl italic lowercase tracking-tighter text-slate-900">Content<span className="text-brand-accent">Calendar</span></h1>
+           <p className="text-slate-500 max-w-sm">Manage your upcoming viral triggers and automated deployment schedule.</p>
         </div>
         <NavLink to="/" className="btn-hypr-primary h-12 px-8 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
            <Plus className="w-4 h-4" /> New Sequence
@@ -143,25 +143,25 @@ export default function Schedule() {
                     </div>
                     
                     <div className="space-y-2">
-                       <h4 className="text-xl font-bold tracking-tight">{post.content || "Neural Signal Analysis"}</h4>
-                       <div className="flex flex-wrap gap-2 pt-2">
+                       <h4 className="text-xl font-bold tracking-tight text-slate-900">{post.content || "Neural Signal Analysis"}</h4>
+                       <div className="flex flex-wrap gap-2 pt-2 text-left">
                          {(post.hashtags || []).slice(0, 6).map((tag: string, i: number) => (
-                           <span key={i} className="text-[10px] font-bold text-white/20 uppercase tracking-widest bg-white/[0.02] px-2.5 py-1 rounded-md border border-white/5 hover:text-white transition-colors cursor-default">#{tag.replace('#','')}</span>
+                           <span key={i} className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100 hover:text-brand-accent hover:border-brand-accent/20 transition-colors cursor-default">#{tag.replace('#','')}</span>
                          ))}
-                         {(post.hashtags || []).length > 6 && <span className="text-[10px] text-white/10 font-bold uppercase py-1">+{post.hashtags.length - 6} more signals</span>}
+                         {(post.hashtags || []).length > 6 && <span className="text-[10px] text-slate-300 font-bold uppercase py-1">+{post.hashtags.length - 6} more signals</span>}
                        </div>
                     </div>
                   </div>
 
                   <div className="flex flex-col items-end gap-10 shrink-0">
                     <div className={cn(
-                      "flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border shadow-xl bg-black",
-                      post.status === "pending" || post.status === "scheduled" ? "border-amber-500/20 text-amber-500" : "border-emerald-500/20 text-emerald-500"
+                      "flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border shadow-sm bg-white",
+                      post.status === "pending" || post.status === "scheduled" ? "border-amber-200 text-amber-600" : "border-emerald-200 text-emerald-600"
                     )}>
                       {post.status === "pending" || post.status === "scheduled" ? <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                       {post.status || 'Active'}
                     </div>
-                    <button className="flex items-center gap-2 text-[10px] font-bold text-white/20 hover:text-white uppercase tracking-[0.2em] transition-all group/btn">
+                    <button className="flex items-center gap-2 text-[10px] font-bold text-slate-400 hover:text-slate-900 uppercase tracking-[0.2em] transition-all group/btn">
                       Preview Signal <ArrowUpRight className="w-3 h-3 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
                     </button>
                   </div>

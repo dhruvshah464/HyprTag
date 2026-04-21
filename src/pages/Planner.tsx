@@ -32,10 +32,10 @@ interface Task {
 }
 
 const COLUMNS = [
-  { id: 'idea', label: 'Incubating', color: 'bg-white/[0.01]' },
-  { id: 'draft', label: 'Designing', color: 'bg-white/[0.02]' },
-  { id: 'scheduled', label: 'Pipeline', color: 'bg-white/[0.03]' },
-  { id: 'published', label: 'Live', color: 'bg-brand-accent/[0.03]' }
+  { id: 'idea', label: 'Incubating', color: 'bg-slate-50' },
+  { id: 'draft', label: 'Designing', color: 'bg-slate-50/80' },
+  { id: 'scheduled', label: 'Pipeline', color: 'bg-slate-50/60' },
+  { id: 'published', label: 'Live', color: 'bg-brand-accent/[0.05]' }
 ];
 
 export default function Planner() {
@@ -99,13 +99,13 @@ export default function Planner() {
   return (
     <div className="space-y-12 h-screen flex flex-col pb-10 max-w-[1400px] mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-end gap-6 text-left px-4">
-        <div className="space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest text-white/40">
+        <div className="space-y-4 text-left">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[10px] font-bold uppercase tracking-widest text-slate-400">
              <Layout className="w-3 h-3 text-brand-accent" />
              Strategic Pipeline
           </div>
-          <h1 className="font-display font-bold text-4xl italic lowercase tracking-tighter text-white">Content<span className="text-brand-accent">Engine</span></h1>
-          <p className="text-white/40 max-w-md">Orchestrate your high-velocity creator presence with neural workflow visualization.</p>
+          <h1 className="font-display font-bold text-4xl italic lowercase tracking-tighter text-slate-900">Content<span className="text-brand-accent">Engine</span></h1>
+          <p className="text-slate-500 max-w-md">Orchestrate your high-velocity creator presence with neural workflow visualization.</p>
         </div>
         <button 
           onClick={() => { setTargetStatus('idea'); setIsAdding(true); }}
@@ -117,32 +117,32 @@ export default function Planner() {
 
       <AnimatePresence>
         {isAdding && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-2xl">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xl">
              <motion.div 
                initial={{ opacity: 0, scale: 0.9, y: 20 }} 
                animate={{ opacity: 1, scale: 1, y: 0 }} 
                exit={{ opacity: 0, scale: 0.9, y: 20 }} 
-               className="hypr-card max-w-xl w-full border-white/10 bg-bg-card p-12"
+               className="hypr-card max-w-xl w-full border-slate-200 bg-white p-12 shadow-2xl"
              >
                 <div className="flex justify-between items-center mb-12">
-                   <div className="space-y-1">
-                      <h3 className="font-display font-bold text-4xl tracking-tighter italic">Initiate <span className="text-brand-accent">Concept</span></h3>
-                      <p className="text-[10px] font-bold text-white/20 uppercase tracking-[0.3em]">Status: {targetStatus}</p>
+                   <div className="space-y-1 text-left">
+                      <h3 className="font-display font-bold text-4xl tracking-tighter italic text-slate-900">Initiate <span className="text-brand-accent">Concept</span></h3>
+                      <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.3em]">Status: {targetStatus}</p>
                    </div>
-                   <button onClick={() => setIsAdding(false)} className="p-3 bg-white/5 rounded-2xl text-white/20 hover:text-white transition-all">
+                   <button onClick={() => setIsAdding(false)} className="p-3 bg-slate-50 rounded-2xl text-slate-300 hover:text-slate-900 hover:bg-slate-100 transition-all">
                       <X className="w-6 h-6" />
                    </button>
                 </div>
                 
                 <div className="space-y-10">
-                  <div className="space-y-4">
-                    <label className="hypr-label ml-1">Context Definition</label>
+                  <div className="space-y-4 text-left">
+                    <label className="hypr-label ml-1 text-slate-400">Context Definition</label>
                     <textarea 
                       autoFocus
                       value={newContent}
                       onChange={(e) => setNewContent(e.target.value)}
                       placeholder="Neural signal or content draft..."
-                      className="hypr-input w-full min-h-[160px] text-xl font-light py-6"
+                      className="hypr-input w-full min-h-[160px] text-xl font-light py-6 bg-slate-50 border-slate-200 focus:bg-white text-slate-900"
                     />
                   </div>
                   
@@ -166,21 +166,21 @@ export default function Planner() {
         {COLUMNS.map((col) => (
           <div key={col.id} className="flex flex-col gap-8 min-w-[340px] w-[340px]">
             <div className="flex items-center justify-between px-2">
-               <div className="flex items-center gap-4">
-                  <h3 className="font-bold text-xs uppercase tracking-[0.25em] text-white/40">{col.label}</h3>
-                  <span className="text-[10px] bg-white/5 border border-white/5 px-2.5 py-1 rounded-lg text-white/40 font-mono font-bold tracking-tighter">
+                <div className="flex items-center gap-4">
+                  <h3 className="font-bold text-xs uppercase tracking-[0.25em] text-slate-400">{col.label}</h3>
+                  <span className="text-[10px] bg-white border border-slate-100 px-2.5 py-1 rounded-lg text-slate-500 font-mono font-bold tracking-tighter">
                     {tasks.filter(t => t.status === col.id).length.toString().padStart(2, '0')}
                   </span>
                </div>
                <button 
                  onClick={() => { setTargetStatus(col.id as any); setIsAdding(true); }}
-                 className="w-8 h-8 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-xl text-white/20 hover:text-white transition-all border border-white/5"
+                 className="w-8 h-8 flex items-center justify-center bg-white hover:bg-slate-50 rounded-xl text-slate-300 hover:text-slate-900 transition-all border border-slate-100 shadow-sm"
                >
                  <Plus className="w-4 h-4" />
                </button>
             </div>
 
-            <div className={cn("flex-grow rounded-[2.5rem] border border-white/5 space-y-6 p-5 transition-all duration-700 bg-white/[0.01] hover:bg-white/[0.02] flex flex-col", col.color)}>
+            <div className={cn("flex-grow rounded-[2.5rem] border border-slate-100 space-y-6 p-5 transition-all duration-700 hover:bg-white flex flex-col shadow-sm", col.color)}>
                <div className="space-y-5 flex-grow overflow-y-auto pr-1 scrollbar-hide">
                 <AnimatePresence mode="popLayout">
                   {tasks.filter(t => t.status === col.id).sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).map((task) => (

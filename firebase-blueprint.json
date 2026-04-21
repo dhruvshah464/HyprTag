@@ -38,6 +38,9 @@
         "email": { "type": "string" },
         "displayName": { "type": "string" },
         "isElite": { "type": "boolean" },
+        "onboarded": { "type": "boolean" },
+        "niche": { "type": "string" },
+        "connections": { "type": "object" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["email", "isElite"]
