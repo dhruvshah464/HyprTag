@@ -58,9 +58,11 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   const [usageStats, setUsageStats] = useState({ gens: 0, intel: 0 });
+  const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!auth.currentUser) return;
+    setLocalError(null);
 
     const qGenerations = query(
       collection(db, "generations"),
@@ -84,18 +86,27 @@ export default function Dashboard() {
     const unsubs = [
       onSnapshot(qGenerations, (snapshot) => {
         setStats(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).reverse());
-      }, (err) => handleFirestoreError(err, 'list', 'generations')),
+      }, (err) => {
+        console.error(err);
+        setLocalError(err.message);
+      }),
 
       onSnapshot(qTasks, (snapshot) => {
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Task[];
         setTasks(data);
         setScheduled(data.filter(t => t.status === 'scheduled').sort((a,b) => new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime()));
-      }, (err) => handleFirestoreError(err, 'list', 'scheduledPosts')),
+      }, (err) => {
+        console.error(err);
+        setLocalError(err.message);
+      }),
 
       onSnapshot(qCompetitors, (snapshot) => {
         setCompetitors(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         setLoading(false);
-      }, (err) => handleFirestoreError(err, 'list', 'competitorInsights'))
+      }, (err) => {
+        console.error(err);
+        setLocalError(err.message);
+      })
     ];
 
     async function fetchUsage() {
@@ -137,6 +148,18 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-12 pb-20 max-w-[1400px] mx-auto">
+      {/* Error Alert */}
+      {localError && (
+        <motion.div 
+          initial={{ opacity: 0, h: 0 }}
+          animate={{ opacity: 1, h: 'auto' }}
+          className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 text-xs font-bold uppercase tracking-widest"
+        >
+          <AlertCircle className="w-4 h-4" />
+          Security Protocol Error: {localError}
+        </motion.div>
+      )}
+
       {/* Header Summary */}
       <div className="flex flex-col md:flex-row justify-between items-start gap-8">
         <div className="space-y-4">

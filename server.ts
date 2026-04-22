@@ -26,6 +26,28 @@ async function startServer() {
     res.json({ status: "ok", version: "1.0.0" });
   });
 
+  // Auth: Mock Send Verification Email
+  app.post("/api/auth/send-code", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) return res.status(400).json({ error: "Email is required" });
+      
+      const code = "HYPR-" + Math.floor(1000 + Math.random() * 9000);
+      
+      console.log(`[STRATEGIC_PROTOCOL] Sending verification code ${code} to ${email}`);
+      // In a real Billion Dollar SaaS, we'd use SendGrid/Nodemailer here.
+      
+      res.json({ 
+        status: "success", 
+        message: "Neural verification packet dispatched.", 
+        debugCode: code // Provided for demo purposes
+      });
+    } catch (error) {
+      console.error("Auth Error:", error);
+      res.status(500).json({ error: "Failed to dispatch verification packet." });
+    }
+  });
+
   // Razorpay: Create Order
   app.post("/api/razorpay/order", async (req, res) => {
     try {

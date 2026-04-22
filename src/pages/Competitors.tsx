@@ -12,7 +12,9 @@ import {
   Globe,
   CheckCircle2,
   Cpu,
-  BarChart3
+  BarChart3,
+  AlertCircle,
+  Layers
 } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
 import { db, auth, handleFirestoreError } from '../lib/firebase';
@@ -36,6 +38,8 @@ export default function Competitors() {
   const [loading, setLoading] = useState(false);
   const [insight, setInsight] = useState<any | null>(null);
   const [usageCount, setUsageCount] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     async function checkUsage() {
@@ -51,23 +55,47 @@ export default function Competitors() {
     checkUsage();
   }, [user, isElite]);
 
+  const validateUrl = (u: string) => {
+    const pattern = new RegExp('^(https?:\\/\\/)?'+ // protocol
+      '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|'+ // domain name
+      '((\\d{1,3}\\.){3}\\d{1,3}))'+ // OR ip (v4) address
+      '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
+      '(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
+      '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
+    return !!pattern.test(u);
+  };
+
+  const handleCopy = () => {
+    if (!insight?.effectiveHashtags) return;
+    const tags = insight.effectiveHashtags.map((t: string) => `#${t.replace('#','')}`).join(' ');
+    navigator.clipboard.writeText(tags);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const handleAnalyze = async () => {
     if (!url) return;
+    setError(null);
+
+    if (!validateUrl(url)) {
+      setError("Strategic protocol error: Invalid URL format. Please provide a valid social profile link.");
+      return;
+    }
     
     if (!isElite && usageCount !== null && usageCount >= 3) {
-      alert("Competitor intelligence limit reached. Elite status required for deep infiltration.");
+      setError("Intelligence threshold reached. Upgrade to Elite for unlimited competitor infiltration.");
       return;
     }
 
     setLoading(true);
     try {
       const model = (ai as any).getGenerativeModel({
-        model: "gemini-3-flash-preview",
-        systemInstruction: "You are an elite competitive intelligence agent. Your job is to extract high-velocity patterns from social media profile URLs. Always return data in strict JSON format."
+        model: "gemini-1.5-flash",
+        systemInstruction: "You are an elite competitive intelligence agent. Your job is to extract high-velocity patterns from social media profile URLs. Always return data in strict JSON format. IMPORTANT: For growthTip, provide a SPECIFIC, ACTIONABLE example that can be implemented immediately (e.g., 'Instead of X, try using Y in your next post')."
       });
 
       const response = await model.generateContent({
-        contents: [{ text: `Analyze this competitor profile: ${url}. Provide a breakdown of their effective hashtags, their content theme (in 3-5 words), and a growth tip for us.` }],
+        contents: [{ text: `Exhaustively analyze this competitor profile: ${url}. Provide a breakdown of their effective hashtags, their content theme (in 3-5 words), and a growth tip for us with a specific executable example.` }],
         generationConfig: {
           responseMimeType: "application/json",
           responseSchema: {
@@ -84,7 +112,10 @@ export default function Competitors() {
         }
       });
 
-      const data = JSON.parse(response.response.text() || "{}");
+      const text = response.response.text();
+      if (!text) throw new Error("Neural signal lost. Intelligence extraction failed.");
+      
+      const data = JSON.parse(text);
       setInsight(data);
 
       if (auth.currentUser) {
@@ -101,8 +132,9 @@ export default function Competitors() {
           handleFirestoreError(e, 'create', 'competitorInsights');
         }
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      setError("Tactical error during intelligence extraction. Verify the URL and security clearance.");
     } finally {
       setLoading(false);
     }
@@ -114,9 +146,11 @@ export default function Competitors() {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-50 border border-slate-100 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 shadow-sm"
+          className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-slate-50 border border-slate-100 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 shadow-sm overflow-hidden"
         >
-          <Cpu className="w-3 h-3 text-brand-accent" />
+          <div className="w-4 h-4 bg-slate-900 rounded-sm flex items-center justify-center overflow-hidden">
+            <img src="/logo.svg" alt="L" className="w-full h-full object-cover scale-150" />
+          </div>
           Neural Pattern Extraction
         </motion.div>
         
@@ -159,9 +193,15 @@ export default function Competitors() {
               <input 
                 type="text" 
                 placeholder="Profile URL (e.g., instagram.com/nike)"
-                className="w-full bg-transparent border-b border-slate-100 py-4 pl-14 pr-4 text-2xl font-medium outline-none focus:border-brand-accent/30 transition-all placeholder:text-slate-200 text-slate-800 font-display italic tracking-tight"
+                className={cn(
+                  "w-full bg-transparent border-b py-4 pl-14 pr-4 text-2xl font-medium outline-none transition-all placeholder:text-slate-200 text-slate-800 font-display italic tracking-tight",
+                  error ? "border-red-500/50" : "border-slate-100 focus:border-brand-accent/30"
+                )}
                 value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  if (error) setError(null);
+                }}
               />
             </div>
             <button 
@@ -173,6 +213,16 @@ export default function Competitors() {
               Extract Strategy
             </button>
           </div>
+          {error && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="mt-6 p-4 rounded-xl bg-red-50 border border-red-100 flex items-center gap-3 text-red-600 text-[10px] font-bold uppercase tracking-widest"
+            >
+              <AlertCircle className="w-4 h-4" />
+              {error}
+            </motion.div>
+          )}
         </div>
       </div>
 
@@ -200,6 +250,16 @@ export default function Competitors() {
                      <span key={i} className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-semibold text-slate-600 hover:text-brand-accent transition-colors cursor-default">#{tag.replace('#','')}</span>
                    ))}
                  </div>
+                 <button 
+                  onClick={handleCopy}
+                  className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-brand-accent hover:text-brand-accent/80 transition-colors"
+                >
+                  {copied ? (
+                    <><CheckCircle2 className="w-4 h-4 text-emerald-500" /> Assets Copied to Clipboard</>
+                  ) : (
+                    <><Layers className="w-4 h-4" /> Copy High-Velocity Assets</>
+                  )}
+                </button>
                </div>
 
                <div className="p-8 bg-slate-50 border border-slate-100 rounded-[2rem] relative overflow-hidden group">

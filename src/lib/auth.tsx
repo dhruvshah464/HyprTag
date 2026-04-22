@@ -28,6 +28,7 @@ interface AuthContextType {
   login: () => Promise<void>;
   logout: () => Promise<void>;
   verify2FA: (code: string) => boolean;
+  requestVerificationCode: () => Promise<void>;
   upgradeToElite: () => Promise<void>;
   completeOnboarding: (details: Partial<UserProfile>) => Promise<void>;
   isLoggingIn: boolean;
@@ -45,6 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [activeVerificationCode, setActiveVerificationCode] = useState<string | null>(null);
 
   useEffect(() => {
     let unsubFirestore: (() => void) | undefined;
@@ -124,9 +126,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const requestVerificationCode = async () => {
+    if (!user?.email) return;
+    try {
+      const resp = await fetch('/api/auth/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email })
+      });
+      const data = await resp.json();
+      if (data.status === 'success' && data.debugCode) {
+        setActiveVerificationCode(data.debugCode);
+        console.log(`[Neural Handshake] Code dispatched: ${data.debugCode}`);
+      }
+    } catch (e) {
+      console.error("Neural signaling failure:", e);
+    }
+  };
+
   const verify2FA = (code: string) => {
-    // Simulated 2FA validation
-    if (code === 'HYPR-777') {
+    // Simulated 2FA validation - supports permanent demo code and dynamic code
+    if (code === 'HYPR-777' || code === activeVerificationCode) {
       setIs2FAVerified(true);
       return true;
     }
@@ -166,6 +186,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       login, 
       logout, 
       verify2FA,
+      requestVerificationCode,
       upgradeToElite, 
       completeOnboarding,
       isLoggingIn, 

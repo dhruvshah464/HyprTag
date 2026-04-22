@@ -73,25 +73,28 @@ service cloud.firestore {
     }
 
     match /generations/{genId} {
-      allow get, list: if isSignedIn() && isValidId(genId) && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(genId) && isValidGeneration(incoming());
-      allow update: if isOwner(existing().userId) && isValidId(genId) && incoming().userId == existing().userId && incoming().createdAt == existing().createdAt;
-      allow delete: if isOwner(existing().userId) && isValidId(genId);
+      allow get: if isSignedIn() && isValidId(genId) && resource.data.userId == request.auth.uid;
+      allow list: if isSignedIn();
+      allow create: if isVerified() && isValidId(genId) && isValidGeneration(incoming());
+      allow update: if isVerified() && isOwner(existing().userId) && isValidId(genId) && incoming().userId == existing().userId && incoming().createdAt == existing().createdAt;
+      allow delete: if isVerified() && isOwner(existing().userId) && isValidId(genId);
     }
 
     match /scheduledPosts/{postId} {
-      allow get, list: if isSignedIn() && isValidId(postId) && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(postId) && isValidScheduledPost(incoming());
-      allow update: if isOwner(existing().userId) && isValidId(postId)
+      allow get: if isSignedIn() && isValidId(postId) && resource.data.userId == request.auth.uid;
+      allow list: if isSignedIn();
+      allow create: if isVerified() && isValidId(postId) && isValidScheduledPost(incoming());
+      allow update: if isVerified() && isOwner(existing().userId) && isValidId(postId)
                     && incoming().userId == existing().userId 
                     && incoming().createdAt == existing().createdAt;
-      allow delete: if isOwner(existing().userId) && isValidId(postId);
+      allow delete: if isVerified() && isOwner(existing().userId) && isValidId(postId);
     }
 
     match /competitorInsights/{insightId} {
-      allow get, list: if isSignedIn() && isValidId(insightId) && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(insightId) && isValidCompetitorInsight(incoming());
-      allow delete: if isOwner(existing().userId) && isValidId(insightId);
+      allow get: if isSignedIn() && isValidId(insightId) && resource.data.userId == request.auth.uid;
+      allow list: if isSignedIn();
+      allow create: if isVerified() && isValidId(insightId) && isValidCompetitorInsight(incoming());
+      allow delete: if isVerified() && isOwner(existing().userId) && isValidId(insightId);
     }
   }
 }

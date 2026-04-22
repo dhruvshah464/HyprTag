@@ -87,8 +87,8 @@ const UserLayout = ({ children }: { children: React.ReactNode }) => {
       )}>
         <div className="flex items-center justify-between mb-12 overflow-hidden">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-brand-accent rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-brand-accent/20">
-              <Hash className="text-white w-6 h-6" />
+            <div className="w-10 h-10 bg-slate-950 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-slate-900/10 overflow-hidden">
+              <img src="/logo.svg" alt="Logo" className="w-full h-full object-cover scale-150" />
             </div>
             {!isCollapsed && <span className="font-display font-bold text-2xl tracking-tighter leading-none whitespace-nowrap">hypr<span className="text-brand-accent">tags</span></span>}
           </div>
@@ -225,9 +225,9 @@ export default function App() {
     return (
       <div className="min-h-screen bg-bg-main flex flex-col items-center justify-center gap-6">
          <div className="relative">
-            <div className="w-16 h-16 border-t-2 border-brand-accent rounded-full animate-spin" />
-            <div className="absolute inset-0 flex items-center justify-center">
-               <Hash className="w-6 h-6 text-brand-accent animate-pulse" />
+            <div className="w-20 h-20 border-t-2 border-brand-accent rounded-full animate-spin" />
+            <div className="absolute inset-0 flex items-center justify-center overflow-hidden p-4">
+               <img src="/logo.svg" alt="Logo" className="w-8 h-8 animate-pulse" />
             </div>
          </div>
          <div className="space-y-2 text-center">

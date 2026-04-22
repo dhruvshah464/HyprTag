@@ -22,7 +22,7 @@ import { useAuth } from '../lib/auth';
 import { cn } from '../lib/utils';
 
 export default function Onboarding() {
-  const { completeOnboarding } = useAuth();
+  const { completeOnboarding, requestVerificationCode, activeVerificationCode, user } = useAuth();
   const [step, setStep] = useState(1);
   const [details, setDetails] = useState({
     displayName: '',
@@ -38,6 +38,19 @@ export default function Onboarding() {
   const [verificationCode, setVerificationCode] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [verified, setVerified] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
+
+  React.useEffect(() => {
+    if (step === 3) {
+      requestVerificationCode();
+    }
+  }, [step]);
+
+  const handleResend = async () => {
+    setSendingCode(true);
+    await requestVerificationCode();
+    setSendingCode(false);
+  };
 
   const hasSocials = Object.values(socialHandles).some(v => typeof v === 'string' && v.length > 0);
 
@@ -47,11 +60,11 @@ export default function Onboarding() {
   const handleVerify = async () => {
     setVerifying(true);
     await new Promise(r => setTimeout(r, 2000));
-    if (verificationCode === 'HYPR-777') {
+    if (verificationCode === 'HYPR-777' || verificationCode === activeVerificationCode) {
       setVerified(true);
       setStep(4);
     } else {
-      alert("Strategic hand-shake failed. Use code HYPR-777 for simulation.");
+      alert("Strategic hand-shake failed. Verify the code dispatched to your authenticated endpoint.");
     }
     setVerifying(false);
   };
@@ -225,7 +238,7 @@ export default function Onboarding() {
                  </div>
                  <h2 className="text-4xl font-display font-bold italic tracking-tighter text-slate-900">Security <span className="text-brand-accent">Handshake.</span></h2>
                  <p className="text-slate-500 font-light italic leading-relaxed">
-                    A secure verification packet has been dispatched to your primary social endpoint. Enter the 7-digit strategic code below.
+                    A strategic verification packet has been dispatched to <span className="text-slate-900 font-bold">{user?.email}</span>. Enter the strategic code below.
                  </p>
               </div>
 

@@ -12,18 +12,33 @@ import {
   Smartphone,
   ChevronRight,
   Shield,
-  Key
+  Key,
+  Instagram,
+  Twitter
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { cn } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
-  const { login, isLoggingIn, authError, user, verify2FA, is2FAVerified, logout } = useAuth();
+  const { login, isLoggingIn, authError, user, verify2FA, is2FAVerified, logout, requestVerificationCode } = useAuth();
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [verificationError, setVerificationError] = useState<string | null>(null);
+  const [sendingCode, setSendingCode] = useState(false);
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (user && !is2FAVerified) {
+      requestVerificationCode();
+    }
+  }, [user, is2FAVerified]);
+
+  const handleResend = async () => {
+    setSendingCode(true);
+    await requestVerificationCode();
+    setSendingCode(false);
+  };
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,9 +72,9 @@ export default function Login() {
         <div className="flex flex-col items-center gap-6">
           <div 
             onClick={() => navigate('/')}
-            className="w-16 h-16 bg-slate-900 rounded-[22px] flex items-center justify-center shadow-2xl shadow-slate-900/20 cursor-pointer transition-transform hover:scale-110 active:scale-95"
+            className="w-20 h-20 bg-slate-900 rounded-[28px] flex items-center justify-center shadow-2xl shadow-slate-900/20 cursor-pointer transition-transform hover:scale-110 active:scale-95 overflow-hidden"
           >
-            <Hash className="text-white w-8 h-8" />
+            <img src="/logo.svg" alt="Logo" className="w-full h-full object-cover scale-150" />
           </div>
           <div className="text-center space-y-2">
             <h1 className="font-display font-bold text-4xl tracking-tighter lowercase">hypr<span className="text-brand-accent">tags</span></h1>
@@ -96,6 +111,17 @@ export default function Login() {
                     </div>
                     {isLoggingIn ? <Loader2 className="w-4 h-4 animate-spin text-brand-accent" /> : <ChevronRight className="w-4 h-4 text-slate-300 group-hover:translate-x-1 transition-transform" />}
                   </button>
+
+                  <div className="flex gap-4">
+                    <button className="flex-grow h-14 bg-white border border-slate-100 rounded-2xl flex items-center justify-center gap-3 hover:border-brand-accent/20 transition-all opacity-60 hover:opacity-100">
+                      <Instagram className="w-4 h-4 text-slate-400" />
+                      <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Instagram</span>
+                    </button>
+                    <button className="flex-grow h-14 bg-white border border-slate-100 rounded-2xl flex items-center justify-center gap-3 hover:border-brand-accent/20 transition-all opacity-60 hover:opacity-100">
+                      <Twitter className="w-4 h-4 text-slate-400" />
+                      <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Twitter / X</span>
+                    </button>
+                  </div>
 
                   <div className="h-px bg-slate-50 relative">
                     <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-4 text-[8px] font-bold text-slate-300 uppercase tracking-[0.3em]">Secure Socket</span>
@@ -135,13 +161,25 @@ export default function Login() {
                       <Key className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
                       <input 
                         type="text" 
-                        placeholder="AUTH CODE (HYPR-777)" 
+                        placeholder="AUTH CODE" 
                         className="w-full bg-slate-50/50 border border-slate-100 py-5 pl-14 pr-6 rounded-2xl outline-none focus:border-brand-accent/30 transition-all text-xl font-display font-bold tracking-widest placeholder:text-slate-200 italic"
                         value={twoFactorCode}
                         onChange={(e) => setTwoFactorCode(e.target.value.toUpperCase())}
                       />
                     </div>
-                    <p className="text-[9px] text-slate-400 font-bold text-center tracking-widest uppercase">Simulation code: <span className="text-slate-600">HYPR-777</span></p>
+                    <div className="flex flex-col items-center gap-4 text-center">
+                      <p className="text-[9px] text-slate-400 font-bold tracking-widest uppercase italic max-w-[240px]">
+                        A strategic verification packet has been dispatched to <span className="text-slate-700">{user.email}</span>
+                      </p>
+                      <button 
+                        type="button"
+                        disabled={sendingCode}
+                        onClick={handleResend}
+                        className="text-[9px] font-bold text-brand-accent uppercase tracking-widest hover:underline disabled:opacity-30"
+                      >
+                        {sendingCode ? "Dispatching..." : "Request New Packet"}
+                      </button>
+                    </div>
                   </div>
 
                   {verificationError && (
