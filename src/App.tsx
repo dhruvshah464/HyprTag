@@ -26,6 +26,7 @@ import { cn } from './lib/utils';
 import { useAuth } from './lib/auth';
 import Dashboard from './pages/Dashboard';
 import Generator from './pages/Generator';
+import VideoGenerator from './pages/VideoGenerator';
 import Competitors from './pages/Competitors';
 import Schedule from './pages/Schedule';
 import Analytics from './pages/Analytics';
@@ -88,7 +89,7 @@ const UserLayout = ({ children }: { children: React.ReactNode }) => {
         <div className="flex items-center justify-between mb-12 overflow-hidden">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-slate-950 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-slate-900/10 overflow-hidden">
-              <img src="/logo.svg" alt="Logo" className="w-full h-full object-cover scale-150" />
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-cover scale-150" />
             </div>
             {!isCollapsed && <span className="font-display font-bold text-2xl tracking-tighter leading-none whitespace-nowrap">hypr<span className="text-brand-accent">tags</span></span>}
           </div>
@@ -126,6 +127,7 @@ const UserLayout = ({ children }: { children: React.ReactNode }) => {
           </p>
           <NavItem to="/" icon={LayoutIcon} label={isCollapsed ? "" : "Command Center"} onClick={closeMobile} />
           <NavItem to="/generator" icon={Hash} label={isCollapsed ? "" : "Neural Generator"} onClick={closeMobile} />
+          <NavItem to="/video-generator" icon={Layers} label={isCollapsed ? "" : "Neural Reels"} onClick={closeMobile} />
           <NavItem to="/competitors" icon={Target} label={isCollapsed ? "" : "Competitor Intel"} onClick={closeMobile} />
           <NavItem to="/planner" icon={Layers} label={isCollapsed ? "" : "Content Planner"} onClick={closeMobile} />
           <NavItem to="/neural-guard" icon={ShieldCheck} label={isCollapsed ? "" : "Neural Guard"} onClick={closeMobile} />
@@ -219,7 +221,7 @@ const UserLayout = ({ children }: { children: React.ReactNode }) => {
 };
 
 export default function App() {
-  const { user, loading, onboarded, is2FAVerified } = useAuth();
+  const { user, loading, onboarded } = useAuth();
 
   if (loading) {
     return (
@@ -227,7 +229,7 @@ export default function App() {
          <div className="relative">
             <div className="w-20 h-20 border-t-2 border-brand-accent rounded-full animate-spin" />
             <div className="absolute inset-0 flex items-center justify-center overflow-hidden p-4">
-               <img src="/logo.svg" alt="Logo" className="w-8 h-8 animate-pulse" />
+               <img src="/logo.png" alt="Logo" className="w-8 h-8 animate-pulse" />
             </div>
          </div>
          <div className="space-y-2 text-center">
@@ -243,11 +245,11 @@ export default function App() {
       <Routes>
         <Route path="/" element={!user ? <Landing /> : <Navigate to="/dashboard" />} />
         <Route path="/how-it-works" element={<HowItWorks />} />
-        <Route path="/login" element={!user || !is2FAVerified ? <Login /> : <Navigate to="/dashboard" />} />
-        <Route path="/onboarding" element={user && is2FAVerified ? (!onboarded ? <Onboarding /> : <Navigate to="/dashboard" />) : <Navigate to="/login" />} />
-        <Route path="/elite-onboarding" element={user && is2FAVerified ? <EliteOnboarding /> : <Navigate to="/login" />} />
+        <Route path="/login" element={!user ? <Login /> : (onboarded ? <Navigate to="/dashboard" /> : <Navigate to="/onboarding" />)} />
+        <Route path="/onboarding" element={user ? (!onboarded ? <Onboarding /> : <Navigate to="/dashboard" />) : <Navigate to="/login" />} />
+        <Route path="/elite-onboarding" element={user ? <EliteOnboarding /> : <Navigate to="/login" />} />
         <Route path="*" element={
-          user && is2FAVerified ? (
+          user ? (
             !onboarded ? (
               <Navigate to="/onboarding" />
             ) : (
@@ -256,6 +258,7 @@ export default function App() {
                   <Route path="/" element={<Navigate to="/dashboard" />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/generator" element={<Generator />} />
+                  <Route path="/video-generator" element={<VideoGenerator />} />
                   <Route path="/competitors" element={<Competitors />} />
                   <Route path="/planner" element={<Planner />} />
                   <Route path="/schedule" element={<Schedule />} />

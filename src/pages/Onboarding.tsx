@@ -22,8 +22,11 @@ import { useAuth } from '../lib/auth';
 import { cn } from '../lib/utils';
 
 export default function Onboarding() {
-  const { completeOnboarding, requestVerificationCode, activeVerificationCode, user } = useAuth();
+  const { completeOnboarding, requestVerificationCode, activeVerificationCode, user, profile } = useAuth();
   const [step, setStep] = useState(1);
+  const [scanning, setScanning] = useState(false);
+  const [discoveredPlatforms, setDiscoveredPlatforms] = useState<string[]>([]);
+  
   const [details, setDetails] = useState({
     displayName: '',
     niche: '',
@@ -41,10 +44,20 @@ export default function Onboarding() {
   const [sendingCode, setSendingCode] = useState(false);
 
   React.useEffect(() => {
-    if (step === 3) {
+    if (step === 2) {
+      handleDiscovery();
+    }
+    if (step === 4) {
       requestVerificationCode();
     }
   }, [step]);
+
+  const handleDiscovery = async () => {
+    setScanning(true);
+    await new Promise(r => setTimeout(r, 4000));
+    setDiscoveredPlatforms(['instagram', 'tiktok']); // Simulation of discovered linked platforms
+    setScanning(false);
+  };
 
   const handleResend = async () => {
     setSendingCode(true);
@@ -105,7 +118,7 @@ export default function Onboarding() {
       >
         {/* Progress Rail */}
         <div className="flex gap-2">
-           {[1, 2, 3, 4].map(i => (
+           {[1, 2, 3, 4, 5].map(i => (
              <div key={i} className={cn("h-1 flex-grow rounded-full transition-all duration-500", i <= step ? "bg-brand-accent" : "bg-slate-100")} />
            ))}
         </div>
@@ -166,14 +179,69 @@ export default function Onboarding() {
                 onClick={handleNext}
                 className="btn-hypr-primary w-full h-16 flex items-center justify-center gap-3 text-sm tracking-widest uppercase disabled:opacity-50 shadow-xl shadow-brand-accent/20"
               >
-                Sync Identity <ArrowRight className="w-4 h-4" />
+                Simulate Identity Matrix Scan <ArrowRight className="w-4 h-4" />
               </button>
             </motion.div>
           )}
 
           {step === 2 && (
             <motion.div 
-              key="step2"
+               key="step2"
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               exit={{ opacity: 0 }}
+               className="space-y-12 text-center"
+            >
+               <div className="space-y-4">
+                  <h2 className="text-3xl font-display font-bold italic tracking-tighter text-slate-900">Neural <span className="text-brand-accent">Discovery.</span></h2>
+                  <p className="text-slate-400 text-sm italic">Scanning global social clusters for endpoints linked to <span className="text-slate-900 font-bold">{user?.email}</span></p>
+               </div>
+
+               <div className="relative py-20">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className={cn("w-48 h-48 border-2 border-brand-accent/20 rounded-full animate-ping", scanning ? "opacity-100" : "opacity-0")} />
+                  </div>
+                  <div className="relative z-10 space-y-6">
+                    {scanning ? (
+                      <div className="space-y-4">
+                        <Loader2 className="w-12 h-12 text-brand-accent animate-spin mx-auto" />
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em] animate-pulse">Extracting Linked Nodes...</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-8">
+                        <div className="flex justify-center gap-4">
+                          {discoveredPlatforms.map(p => (
+                            <motion.div 
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              key={p}
+                              className="w-16 h-16 bg-brand-accent/10 border border-brand-accent/20 rounded-2xl flex items-center justify-center"
+                            >
+                               {p === 'instagram' && <Instagram className="w-6 h-6 text-brand-accent" />}
+                               {p === 'tiktok' && <MessageCircle className="w-6 h-6 text-brand-accent" />}
+                            </motion.div>
+                          ))}
+                        </div>
+                        <p className="text-sm font-bold text-slate-700 uppercase tracking-widest">{discoveredPlatforms.length} Potential Clusters Identified</p>
+                      </div>
+                    )}
+                  </div>
+               </div>
+
+               {!scanning && (
+                 <button 
+                  onClick={handleNext}
+                  className="btn-hypr-primary w-full h-16 text-sm tracking-widest uppercase shadow-xl shadow-brand-accent/20"
+                >
+                   Finalize Tactical Handshake <ArrowRight className="w-4 h-4" />
+                 </button>
+               )}
+            </motion.div>
+          )}
+
+          {step === 3 && (
+            <motion.div 
+              key="step3"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
@@ -181,7 +249,7 @@ export default function Onboarding() {
             >
               <div className="space-y-4 text-left">
                  <h2 className="text-4xl font-display font-bold italic tracking-tighter text-slate-900">Authorize <span className="text-brand-accent">Endpoints.</span></h2>
-                 <p className="text-slate-500 font-light italic">Compulsory social node linking required for strategic signal extraction.</p>
+                 <p className="text-slate-500 font-light italic">Establish secure tunnel connections for optimized strategic signal extraction.</p>
               </div>
 
               <div className="grid grid-cols-1 gap-4">
@@ -203,12 +271,6 @@ export default function Onboarding() {
                     value={socialHandles.twitter}
                     onChange={(val) => setSocialHandles(h => ({ ...h, twitter: val }))}
                  />
-                 <SocialInput 
-                    icon={Linkedin} 
-                    label="LinkedIn" 
-                    value={socialHandles.linkedin}
-                    onChange={(val) => setSocialHandles(h => ({ ...h, linkedin: val }))}
-                 />
               </div>
 
               <div className="flex gap-4 pt-6">
@@ -218,15 +280,15 @@ export default function Onboarding() {
                   onClick={handleNext} 
                   className="btn-hypr-primary flex-grow h-16 flex items-center justify-center gap-3 text-sm tracking-widest uppercase shadow-xl shadow-brand-accent/20 disabled:opacity-50"
                 >
-                    Initialize Strategic Verification <ArrowRight className="w-4 h-4" />
+                    Initialize Security Protocol <ArrowRight className="w-4 h-4" />
                  </button>
               </div>
             </motion.div>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <motion.div 
-              key="step3"
+              key="step4"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -236,9 +298,9 @@ export default function Onboarding() {
                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 text-white text-[9px] font-bold uppercase tracking-widest">
                     <Lock className="w-3 h-3 text-brand-accent" /> 2FA Neural Bridge
                  </div>
-                 <h2 className="text-4xl font-display font-bold italic tracking-tighter text-slate-900">Security <span className="text-brand-accent">Handshake.</span></h2>
+                 <h2 className="text-4xl font-display font-bold italic tracking-tighter text-slate-900">Final <span className="text-brand-accent">Handshake.</span></h2>
                  <p className="text-slate-500 font-light italic leading-relaxed">
-                    A strategic verification packet has been dispatched to <span className="text-slate-900 font-bold">{user?.email}</span>. Enter the strategic code below.
+                    A strategic verification packet has been dispatched to <span className="text-slate-900 font-bold">{user?.email}</span>. Authorize endpoint linking below.
                  </p>
               </div>
 
@@ -262,13 +324,13 @@ export default function Onboarding() {
                   onClick={handleVerify}
                   className="btn-hypr-primary w-full h-18 text-sm flex items-center justify-center gap-4 transition-all shadow-xl shadow-brand-accent/20 disabled:opacity-50"
                  >
-                    {verifying ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Finalize Encryption <Zap className="w-4 h-4 fill-current" /></>}
+                    {verifying ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Complete Authentication <Zap className="w-4 h-4 fill-current" /></>}
                  </button>
               </div>
             </motion.div>
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <motion.div 
               key="step4"
               initial={{ opacity: 0, x: 20 }}

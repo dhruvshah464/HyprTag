@@ -21,40 +21,13 @@ import { cn } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
-  const { login, isLoggingIn, authError, user, verify2FA, is2FAVerified, logout, requestVerificationCode } = useAuth();
-  const [twoFactorCode, setTwoFactorCode] = useState('');
-  const [verifying, setVerifying] = useState(false);
-  const [verificationError, setVerificationError] = useState<string | null>(null);
-  const [sendingCode, setSendingCode] = useState(false);
+  const { 
+    login, 
+    isLoggingIn, 
+    authError, 
+    user 
+  } = useAuth();
   const navigate = useNavigate();
-
-  React.useEffect(() => {
-    if (user && !is2FAVerified) {
-      requestVerificationCode();
-    }
-  }, [user, is2FAVerified]);
-
-  const handleResend = async () => {
-    setSendingCode(true);
-    await requestVerificationCode();
-    setSendingCode(false);
-  };
-
-  const handleVerify = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setVerifying(true);
-    setVerificationError(null);
-    
-    // Artificial latency for "Security" feel
-    await new Promise(r => setTimeout(r, 1500));
-    
-    if (verify2FA(twoFactorCode)) {
-      // Success will trigger App.tsx redirect via is2FAVerified
-    } else {
-      setVerificationError("Invalid authentication signal. Access denied.");
-    }
-    setVerifying(false);
-  };
 
   return (
     <div className="min-h-screen bg-bg-main flex flex-col items-center justify-center relative overflow-hidden text-slate-900 font-sans p-6">
@@ -74,7 +47,7 @@ export default function Login() {
             onClick={() => navigate('/')}
             className="w-20 h-20 bg-slate-900 rounded-[28px] flex items-center justify-center shadow-2xl shadow-slate-900/20 cursor-pointer transition-transform hover:scale-110 active:scale-95 overflow-hidden"
           >
-            <img src="/logo.svg" alt="Logo" className="w-full h-full object-cover scale-150" />
+            <img src="/logo.png" alt="Logo" className="w-full h-full object-cover scale-150" />
           </div>
           <div className="text-center space-y-2">
             <h1 className="font-display font-bold text-4xl tracking-tighter lowercase">hypr<span className="text-brand-accent">tags</span></h1>
@@ -83,141 +56,59 @@ export default function Login() {
         </div>
 
         <div className="hypr-card p-10 bg-white border-slate-200 shadow-2xl relative overflow-hidden group">
-          <AnimatePresence mode="wait">
-            {!user ? (
-              <motion.div 
-                key="social-auth"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="space-y-8"
+          <div className="space-y-8">
+            <div className="space-y-3">
+              <h2 className="text-2xl font-display font-bold italic text-slate-900">Initialize <span className="text-brand-accent">Session</span></h2>
+              <p className="text-sm text-slate-500 font-light leading-relaxed italic">"Authorize your identity via social handshake to enter the command interface."</p>
+            </div>
+
+            <div className="space-y-4">
+              <button 
+                onClick={login}
+                disabled={isLoggingIn}
+                className="w-full h-16 bg-white border border-slate-100 rounded-2xl flex items-center justify-between px-6 hover:border-brand-accent/20 hover:bg-slate-50 transition-all group shadow-sm"
               >
-                <div className="space-y-3">
-                  <h2 className="text-2xl font-display font-bold italic text-slate-900">Initialize <span className="text-brand-accent">Session</span></h2>
-                  <p className="text-sm text-slate-500 font-light leading-relaxed italic">"Authorize your identity via social handshake to enter the command interface."</p>
+                <div className="flex items-center gap-4">
+                  <div className="w-8 h-8 flex items-center justify-center">
+                    <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5 opacity-40 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                  <span className="text-[11px] font-bold text-slate-700 uppercase tracking-widest">Connect Identity</span>
                 </div>
+                {isLoggingIn ? <Loader2 className="w-4 h-4 animate-spin text-brand-accent" /> : <ChevronRight className="w-4 h-4 text-slate-300 group-hover:translate-x-1 transition-transform" />}
+              </button>
 
-                <div className="space-y-4">
-                  <button 
-                    onClick={login}
-                    disabled={isLoggingIn}
-                    className="w-full h-16 bg-white border border-slate-100 rounded-2xl flex items-center justify-between px-6 hover:border-brand-accent/20 hover:bg-slate-50 transition-all group shadow-sm"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-8 h-8 flex items-center justify-center">
-                        <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5 opacity-40 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                      <span className="text-[11px] font-bold text-slate-700 uppercase tracking-widest">Connect Identity</span>
-                    </div>
-                    {isLoggingIn ? <Loader2 className="w-4 h-4 animate-spin text-brand-accent" /> : <ChevronRight className="w-4 h-4 text-slate-300 group-hover:translate-x-1 transition-transform" />}
-                  </button>
+              <div className="flex gap-4">
+                <button className="flex-grow h-14 bg-white border border-slate-100 rounded-2xl flex items-center justify-center gap-3 hover:border-brand-accent/20 transition-all opacity-60 hover:opacity-100">
+                  <Instagram className="w-4 h-4 text-slate-400" />
+                  <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Instagram</span>
+                </button>
+                <button className="flex-grow h-14 bg-white border border-slate-100 rounded-2xl flex items-center justify-center gap-3 hover:border-brand-accent/20 transition-all opacity-60 hover:opacity-100">
+                  <Twitter className="w-4 h-4 text-slate-400" />
+                  <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Twitter / X</span>
+                </button>
+              </div>
 
-                  <div className="flex gap-4">
-                    <button className="flex-grow h-14 bg-white border border-slate-100 rounded-2xl flex items-center justify-center gap-3 hover:border-brand-accent/20 transition-all opacity-60 hover:opacity-100">
-                      <Instagram className="w-4 h-4 text-slate-400" />
-                      <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Instagram</span>
-                    </button>
-                    <button className="flex-grow h-14 bg-white border border-slate-100 rounded-2xl flex items-center justify-center gap-3 hover:border-brand-accent/20 transition-all opacity-60 hover:opacity-100">
-                      <Twitter className="w-4 h-4 text-slate-400" />
-                      <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Twitter / X</span>
-                    </button>
-                  </div>
+              <div className="h-px bg-slate-50 relative">
+                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-4 text-[8px] font-bold text-slate-300 uppercase tracking-[0.3em]">Secure Socket</span>
+              </div>
 
-                  <div className="h-px bg-slate-50 relative">
-                    <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-4 text-[8px] font-bold text-slate-300 uppercase tracking-[0.3em]">Secure Socket</span>
-                  </div>
+              <p className="text-[9px] text-slate-400 font-bold uppercase text-center tracking-[0.2em] pt-2">
+                Guest Mode Deactivated. Strategic Access Only.
+              </p>
+            </div>
 
-                  <p className="text-[9px] text-slate-400 font-bold uppercase text-center tracking-[0.2em] pt-2">
-                    Guest Mode Deactivated. Strategic Access Only.
-                  </p>
-                </div>
-
-                {authError && (
-                   <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-500 text-[10px] font-bold uppercase tracking-wider">
-                      <AlertCircle className="w-4 h-4 shrink-0" />
-                      {authError}
-                   </div>
-                )}
-              </motion.div>
-            ) : !is2FAVerified ? (
-              <motion.div 
-                key="2fa-auth"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="space-y-8"
-              >
-                <div className="space-y-3">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-accent/10 border border-brand-accent/20 text-[8px] font-bold uppercase tracking-widest text-brand-accent">
-                    <ShieldCheck className="w-3 h-3" /> Identity Recognized
-                  </div>
-                  <h2 className="text-2xl font-display font-bold italic text-slate-900">Security <span className="text-brand-accent">Handshake</span></h2>
-                  <p className="text-sm text-slate-500 font-light leading-relaxed italic">"Enter your proprietary auth code to finalize session verification."</p>
-                </div>
-
-                <form onSubmit={handleVerify} className="space-y-6">
-                  <div className="space-y-3">
-                    <div className="relative">
-                      <Key className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
-                      <input 
-                        type="text" 
-                        placeholder="AUTH CODE" 
-                        className="w-full bg-slate-50/50 border border-slate-100 py-5 pl-14 pr-6 rounded-2xl outline-none focus:border-brand-accent/30 transition-all text-xl font-display font-bold tracking-widest placeholder:text-slate-200 italic"
-                        value={twoFactorCode}
-                        onChange={(e) => setTwoFactorCode(e.target.value.toUpperCase())}
-                      />
-                    </div>
-                    <div className="flex flex-col items-center gap-4 text-center">
-                      <p className="text-[9px] text-slate-400 font-bold tracking-widest uppercase italic max-w-[240px]">
-                        A strategic verification packet has been dispatched to <span className="text-slate-700">{user.email}</span>
-                      </p>
-                      <button 
-                        type="button"
-                        disabled={sendingCode}
-                        onClick={handleResend}
-                        className="text-[9px] font-bold text-brand-accent uppercase tracking-widest hover:underline disabled:opacity-30"
-                      >
-                        {sendingCode ? "Dispatching..." : "Request New Packet"}
-                      </button>
-                    </div>
-                  </div>
-
-                  {verificationError && (
-                    <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-500 text-[10px] font-bold uppercase tracking-wider">
-                       <AlertCircle className="w-4 h-4 shrink-0" />
-                       {verificationError}
-                    </div>
-                  )}
-
-                  <button 
-                    type="submit"
-                    disabled={verifying || !twoFactorCode}
-                    className="btn-hypr-primary w-full h-16 rounded-2xl text-[10px] font-bold uppercase tracking-[0.3em] flex items-center justify-center gap-3 disabled:opacity-50 shadow-xl shadow-brand-accent/20"
-                  >
-                    {verifying ? <Loader2 className="w-5 h-5 animate-spin" /> : (
-                      <>Finalize Authorization <ArrowRight className="w-4 h-4" /></>
-                    )}
-                  </button>
-
-                  <button 
-                    type="button"
-                    onClick={logout}
-                    className="w-full text-center text-[9px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
-                  >
-                    Terminate Current Session
-                  </button>
-                </form>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
+            {authError && (
+               <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-500 text-[10px] font-bold uppercase tracking-wider">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  {authError}
+               </div>
+            )}
+          </div>
         </div>
 
         <div className="flex justify-center gap-8 text-[9px] font-bold text-slate-300 uppercase tracking-[0.3em] font-mono">
            <div className="flex items-center gap-2">
               <Shield className="w-3 h-3" /> AES-256 SYNC
-           </div>
-           <div className="flex items-center gap-2">
-              <Smartphone className="w-3 h-3" /> 2FA ENFORCED
            </div>
            <div className="flex items-center gap-2 text-brand-accent">
               <Zap className="w-3 h-3 fill-current" /> ELITE READY

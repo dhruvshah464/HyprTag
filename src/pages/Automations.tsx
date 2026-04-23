@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Zap, 
   Clock, 
@@ -48,6 +48,7 @@ const AUTOMATIONS = [
 export default function Automations() {
   const { isElite } = useAuth();
   const navigate = useNavigate();
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   return (
     <div className="space-y-16 pb-20 max-w-6xl mx-auto">
@@ -67,10 +68,82 @@ export default function Automations() {
            <h1 className="font-display font-bold text-4xl italic lowercase tracking-tighter text-slate-900">Active<span className="text-brand-accent">Automations</span></h1>
            <p className="text-slate-500 max-w-sm">Deploy autonomous sub-routines to manage your strategic growth 24/7.</p>
         </div>
-        <button className="btn-hypr-primary h-12 px-8 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+        <button 
+          onClick={() => setShowCreateModal(true)}
+          className="btn-hypr-primary h-12 px-8 text-xs font-bold uppercase tracking-widest flex items-center gap-2"
+        >
            <Plus className="w-4 h-4" /> Create Flow
         </button>
       </div>
+
+      {/* Creation Modal */}
+      <AnimatePresence>
+        {showCreateModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-6"
+          >
+             <motion.div 
+               initial={{ scale: 0.9, opacity: 0, y: 20 }}
+               animate={{ scale: 1, opacity: 1, y: 0 }}
+               exit={{ scale: 0.9, opacity: 0, y: 20 }}
+               className="w-full max-w-lg bg-white border border-slate-200 rounded-[2.5rem] p-12 shadow-2xl relative"
+             >
+                <button 
+                  onClick={() => setShowCreateModal(false)}
+                  className="absolute top-8 right-8 p-2 text-slate-400 hover:text-slate-900 transition-colors"
+                >
+                   <Plus className="w-6 h-6 rotate-45" />
+                </button>
+
+                <div className="space-y-8">
+                   <div className="space-y-3">
+                      <div className="w-12 h-12 rounded-2xl bg-brand-accent/10 flex items-center justify-center border border-brand-accent/20">
+                         <Zap className="w-6 h-6 text-brand-accent" />
+                      </div>
+                      <h3 className="text-2xl font-display font-bold italic tracking-tight text-slate-900">New Neural <span className="text-brand-accent">Flow</span></h3>
+                      <p className="text-sm text-slate-500 leading-relaxed font-light italic">"Specify the growth trigger and autonomous response sequence."</p>
+                   </div>
+
+                   <div className="space-y-6">
+                      <div className="space-y-3">
+                         <label className="hypr-label ml-1">Flow Identity</label>
+                         <input type="text" placeholder="e.g. VIRAL_PULSE_GUARD" className="hypr-input text-sm font-mono tracking-widest" />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                         <div className="space-y-3 text-left">
+                            <label className="hypr-label ml-1">Trigger Signal</label>
+                            <select className="hypr-input text-xs font-bold uppercase tracking-widest bg-white">
+                               <option>Engagement Threshold</option>
+                               <option>Velocity Spike</option>
+                               <option>Schedule Conflict</option>
+                            </select>
+                         </div>
+                         <div className="space-y-3 text-left">
+                            <label className="hypr-label ml-1">Response Mode</label>
+                            <select className="hypr-input text-xs font-bold uppercase tracking-widest bg-white">
+                               <option>Auto-Update</option>
+                               <option>Neural Notify</option>
+                               <option>Bypass Protocol</option>
+                            </select>
+                         </div>
+                      </div>
+
+                      <button 
+                        onClick={() => setShowCreateModal(false)}
+                        className="w-full h-16 bg-brand-accent text-white rounded-2xl font-bold uppercase tracking-[0.3em] shadow-xl shadow-brand-accent/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-xs"
+                      >
+                         Deploy Automation
+                      </button>
+                   </div>
+                </div>
+             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {AUTOMATIONS.map((item) => (

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { db, auth, handleFirestoreError } from '../lib/firebase';
+import { useAuth } from '../lib/auth';
 import { collection, query, where, onSnapshot, updateDoc, doc, addDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 
 interface Task {
@@ -39,6 +40,7 @@ const COLUMNS = [
 ];
 
 export default function Planner() {
+  const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
@@ -46,8 +48,8 @@ export default function Planner() {
   const [newContent, setNewContent] = useState('');
 
   useEffect(() => {
-    if (!auth.currentUser) return;
-    const q = query(collection(db, "scheduledPosts"), where("userId", "==", auth.currentUser.uid));
+    if (!user) return;
+    const q = query(collection(db, "scheduledPosts"), where("userId", "==", user.uid));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -59,13 +61,13 @@ export default function Planner() {
       handleFirestoreError(err, 'list', 'scheduledPosts');
     });
     return () => unsubscribe();
-  }, []);
+  }, [user?.uid]);
 
   const createTask = async () => {
-    if (!auth.currentUser || !newContent) return;
+    if (!user || !newContent) return;
     try {
       await addDoc(collection(db, "scheduledPosts"), {
-        userId: auth.currentUser.uid,
+        userId: user.uid,
         content: newContent,
         status: targetStatus,
         hashtags: [],

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { 
   onAuthStateChanged, 
   signInWithPopup, 
@@ -12,10 +12,12 @@ import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 interface UserProfile {
   isElite: boolean;
   onboarded: boolean;
+  demoCompleted: boolean;
   displayName?: string;
   niche?: string;
   connections?: Record<string, boolean>;
   socialHandles?: Record<string, string>;
+  linkedPlatforms?: string[];
 }
 
 interface AuthContextType {
@@ -23,14 +25,13 @@ interface AuthContextType {
   loading: boolean;
   isElite: boolean;
   onboarded: boolean;
+  demoCompleted: boolean;
   profile: UserProfile | null;
-  is2FAVerified: boolean;
   login: () => Promise<void>;
   logout: () => Promise<void>;
-  verify2FA: (code: string) => boolean;
-  requestVerificationCode: () => Promise<void>;
   upgradeToElite: () => Promise<void>;
   completeOnboarding: (details: Partial<UserProfile>) => Promise<void>;
+  setDemoCompleted: (completed: boolean) => Promise<void>;
   isLoggingIn: boolean;
   authError: string | null;
 }
@@ -42,11 +43,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isElite, setIsElite] = useState(false);
   const [onboarded, setOnboarded] = useState(false);
-  const [is2FAVerified, setIs2FAVerified] = useState(false);
+  const [demoCompleted, setDemoCompletedState] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [activeVerificationCode, setActiveVerificationCode] = useState<string | null>(null);
 
   useEffect(() => {
     let unsubFirestore: (() => void) | undefined;
@@ -55,9 +55,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(authUser);
       
       if (authUser) {
-        // Reset 2FA for new session if needed, but for now let's keep it simple
-        // In a real app, this would be session-based or device-based
-        
         // Subscribe to user document for Elite status and onboarding
         const userRef = doc(db, 'users', authUser.uid);
         unsubFirestore = onSnapshot(userRef, (docSnap) => {
@@ -66,13 +63,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setProfile(data);
             setIsElite(data.isElite || false);
             setOnboarded(data.onboarded || false);
+            setDemoCompletedState(data.demoCompleted || false);
           } else {
             // Initialize user doc if it doesn't exist
             const initialProfile: UserProfile = {
               isElite: false,
               onboarded: false,
+              demoCompleted: false,
               displayName: authUser.displayName || '',
-              connections: {}
+              connections: {},
+              linkedPlatforms: ['instagram'] // Default simulation
             };
             setDoc(userRef, {
               ...initialProfile,
@@ -93,7 +93,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(null);
         setIsElite(false);
         setOnboarded(false);
-        setIs2FAVerified(false);
         setLoading(false);
       }
     });
@@ -111,7 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
       await signInWithPopup(auth, provider);
-      // login successful, now Login.tsx will handle the 2FA UI
+      // login successful
     } catch (error: any) {
       console.error("Login Error:", error);
       if (error.code === 'auth/popup-blocked') {
@@ -126,38 +125,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const requestVerificationCode = async () => {
-    if (!user?.email) return;
-    try {
-      const resp = await fetch('/api/auth/send-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email })
-      });
-      const data = await resp.json();
-      if (data.status === 'success' && data.debugCode) {
-        setActiveVerificationCode(data.debugCode);
-        console.log(`[Neural Handshake] Code dispatched: ${data.debugCode}`);
-      }
-    } catch (e) {
-      console.error("Neural signaling failure:", e);
-    }
-  };
-
-  const verify2FA = (code: string) => {
-    // Simulated 2FA validation - supports permanent demo code and dynamic code
-    if (code === 'HYPR-777' || code === activeVerificationCode) {
-      setIs2FAVerified(true);
-      return true;
-    }
-    return false;
-  };
-
   const logout = async () => {
     setLoading(true);
     try {
       await signOut(auth);
-      setIs2FAVerified(false);
     } finally {
       setLoading(false);
     }
@@ -175,23 +146,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await setDoc(userRef, { ...details, onboarded: true }, { merge: true });
   };
 
+  const setDemoCompleted = async (completed: boolean) => {
+    if (!user) return;
+    const userRef = doc(db, 'users', user.uid);
+    await setDoc(userRef, { demoCompleted: completed }, { merge: true });
+  };
+
+  const value = useMemo(() => ({ 
+    user, 
+    loading, 
+    isElite, 
+    onboarded, 
+    demoCompleted,
+    profile,
+    login, 
+    logout, 
+    upgradeToElite, 
+    completeOnboarding,
+    setDemoCompleted,
+    isLoggingIn, 
+    authError 
+  }), [user, loading, isElite, onboarded, demoCompleted, profile, isLoggingIn, authError]);
+
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      loading, 
-      isElite, 
-      onboarded, 
-      profile,
-      is2FAVerified,
-      login, 
-      logout, 
-      verify2FA,
-      requestVerificationCode,
-      upgradeToElite, 
-      completeOnboarding,
-      isLoggingIn, 
-      authError 
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

@@ -10,7 +10,10 @@ service cloud.firestore {
     function isSignedIn() { return request.auth != null; }
     function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
-    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function isAdmin() { return isSignedIn() && request.auth.token.email == "464dhruvshah@gmail.com"; }
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
 
@@ -18,83 +21,72 @@ service cloud.firestore {
     
     function isValidGeneration(data) {
       return data.userId == request.auth.uid 
-        && data.content is string
+        && data.content is string && data.content.size() <= 7000
         && data.result is map
-        && (data.reach is int || data.reach == null)
-        && (data.likes is int || data.likes == null)
-        && (data.comments is int || data.comments == null)
+        && (data.get('reach', 0) is int)
+        && (data.get('likes', 0) is int)
+        && (data.get('comments', 0) is int)
         && data.createdAt == request.time;
     }
 
     function isValidScheduledPost(data) {
       return data.userId == request.auth.uid
-        && (data.content is string || data.content == null)
-        && data.hashtags is list
-        && (data.platforms is list || data.platforms == null)
-        && (data.scheduledTime is string || data.scheduledTime == null)
-        && data.status in ['idea', 'draft', 'scheduled', 'published', 'pending']
+        && (data.get('content', '') is string && data.get('content', '').size() <= 5000)
+        && (data.get('hashtags', []) is list)
+        && (data.get('platforms', []) is list)
+        && (data.get('scheduledTime', null) is string || data.get('scheduledTime', null) == null)
+        && (data.get('status', 'idea') in ['idea', 'draft', 'scheduled', 'published', 'pending'])
         && data.createdAt == request.time;
     }
 
     function isValidCompetitorInsight(data) {
       return data.userId == request.auth.uid
-        && data.profileUrl is string
-        && data.insight is string
+        && data.profileUrl is string && data.profileUrl.size() <= 1024
+        && data.insight is string && data.insight.size() <= 10000
         && data.trendingTags is list
         && data.createdAt == request.time;
     }
 
     function isValidUser(data) {
-      return (data.email is string || data.email == null)
-        && (data.isElite is bool || data.isElite == null)
-        && (data.onboarded is bool || data.onboarded == null)
-        && (data.displayName is string || data.displayName == null)
-        && (data.niche is string || data.niche == null)
-        && (data.goals is list || data.goals == null)
-        && (data.connections is map || data.connections == null)
-        && (data.socialHandles is map || data.socialHandles == null)
-        && (data.createdAt is string || data.createdAt == null)
-        && (data.updatedAt != null || true);
+      return (data.get('email', null) is string || data.get('email', null) == null)
+        && (data.get('isElite', null) is bool || data.get('isElite', null) == null)
+        && (data.get('onboarded', null) is bool || data.get('onboarded', null) == null)
+        && (data.get('demoCompleted', null) is bool || data.get('demoCompleted', null) == null)
+        && (data.get('displayName', null) is string || data.get('displayName', null) == null)
+        && (data.get('niche', null) is string || data.get('niche', null) == null)
+        && (data.get('goals', null) is list || data.get('goals', null) == null)
+        && (data.get('connections', null) is map || data.get('connections', null) == null)
+        && (data.get('socialHandles', null) is map || data.get('socialHandles', null) == null)
+        && (data.get('linkedPlatforms', null) is list || data.get('linkedPlatforms', null) == null);
     }
 
     // --- Collection Routes ---
-
+    
     match /users/{userId} {
-      allow get: if isSignedIn() && request.auth.uid == userId;
-      allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming());
-      allow update: if isSignedIn() && request.auth.uid == userId 
-                    && isValidUser(incoming())
-                    && (
-                      // Action: Upgrade to Elite
-                      incoming().diff(existing()).affectedKeys().hasAny(['isElite', 'updatedAt']) ||
-                      // Action: Complete Onboarding
-                      incoming().diff(existing()).affectedKeys().hasAny(['onboarded', 'displayName', 'niche', 'goals', 'connections', 'socialHandles', 'updatedAt'])
-                    );
+      allow get: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUser(incoming());
+      allow update: if (isOwner(userId) || isAdmin()) && isValidId(userId) && isValidUser(incoming());
+      allow delete: if isAdmin();
     }
 
     match /generations/{genId} {
-      allow get: if isSignedIn() && isValidId(genId) && resource.data.userId == request.auth.uid;
-      allow list: if isSignedIn();
-      allow create: if isVerified() && isValidId(genId) && isValidGeneration(incoming());
-      allow update: if isVerified() && isOwner(existing().userId) && isValidId(genId) && incoming().userId == existing().userId && incoming().createdAt == existing().createdAt;
-      allow delete: if isVerified() && isOwner(existing().userId) && isValidId(genId);
+      allow read: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow create: if isSignedIn() && isValidId(genId) && isValidGeneration(incoming());
+      allow update: if (isOwner(existing().userId) || isAdmin()) && incoming().userId == existing().userId;
+      allow delete: if isOwner(existing().userId) || isAdmin();
     }
 
     match /scheduledPosts/{postId} {
-      allow get: if isSignedIn() && isValidId(postId) && resource.data.userId == request.auth.uid;
-      allow list: if isSignedIn();
-      allow create: if isVerified() && isValidId(postId) && isValidScheduledPost(incoming());
-      allow update: if isVerified() && isOwner(existing().userId) && isValidId(postId)
-                    && incoming().userId == existing().userId 
-                    && incoming().createdAt == existing().createdAt;
-      allow delete: if isVerified() && isOwner(existing().userId) && isValidId(postId);
+      allow read: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow create: if isSignedIn() && isValidId(postId) && isValidScheduledPost(incoming());
+      allow update: if (isOwner(existing().userId) || isAdmin()) && incoming().userId == existing().userId;
+      allow delete: if isOwner(existing().userId) || isAdmin();
     }
 
     match /competitorInsights/{insightId} {
-      allow get: if isSignedIn() && isValidId(insightId) && resource.data.userId == request.auth.uid;
-      allow list: if isSignedIn();
-      allow create: if isVerified() && isValidId(insightId) && isValidCompetitorInsight(incoming());
-      allow delete: if isVerified() && isOwner(existing().userId) && isValidId(insightId);
+      allow read: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow create: if isSignedIn() && isValidId(insightId) && isValidCompetitorInsight(incoming());
+      allow delete: if isOwner(existing().userId) || isAdmin();
     }
   }
 }

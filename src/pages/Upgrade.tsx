@@ -194,8 +194,15 @@ export default function Upgrade() {
                  initial={{ opacity: 0, scale: 0.95 }}
                  animate={{ opacity: 1, scale: 1 }}
                  exit={{ opacity: 0, scale: 0.95 }}
-                 className="hypr-card p-12 border-brand-accent/20 bg-brand-accent/[0.02] shadow-2xl shadow-brand-accent/10 space-y-10 text-left"
+                 className="hypr-card p-12 border-brand-accent/20 bg-brand-accent/[0.02] shadow-2xl shadow-brand-accent/10 space-y-10 text-left relative overflow-hidden"
                >
+                  <button 
+                    onClick={() => navigate('/')}
+                    className="absolute top-8 right-8 p-2 text-slate-300 hover:text-slate-900 transition-all hover:scale-110 z-20"
+                    title="Close Bridge"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
                   <div className="flex justify-between items-end">
                      <div className="space-y-1">
                         <p className="text-[10px] font-bold text-brand-accent uppercase tracking-widest">Selected Tier</p>
@@ -234,6 +241,13 @@ export default function Upgrade() {
                         {processing ? <Loader2 className="w-6 h-6 animate-spin" /> : (
                            <>Initialize Neural Bridge <ArrowRight className="w-5 h-5" /></>
                         )}
+                     </button>
+                     
+                     <button 
+                       onClick={() => navigate('/')}
+                       className="w-full text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] hover:text-slate-900 transition-colors py-2"
+                     >
+                        Skip for now, stay with Base Protocols
                      </button>
                      
                      <p className="text-[9px] text-slate-400 font-bold uppercase text-center tracking-widest flex items-center justify-center gap-2">

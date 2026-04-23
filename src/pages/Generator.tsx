@@ -60,7 +60,7 @@ export default function Generator() {
   const handleAnalyze = async () => {
     if (!content && !image) return;
     
-    if (!isElite && usageCount !== null && usageCount >= 5) {
+    if (!isElite && usageCount !== null && usageCount >= 3) {
       alert("Neural limit reached. Upgrade to Elite for unlimited strategic extraction.");
       return;
     }
@@ -152,12 +152,12 @@ export default function Generator() {
             >
               <div className="inline-flex flex-col items-center gap-2">
                  <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-300">
-                    Neural Capacity: <span className={cn(usageCount >= 5 ? "text-red-500" : "text-brand-accent")}>{usageCount}/5</span>
+                    Neural Capacity: <span className={cn(usageCount >= 3 ? "text-red-500" : "text-brand-accent")}>{usageCount}/3</span>
                  </div>
                  <div className="w-32 h-1 bg-slate-100 rounded-full overflow-hidden">
                     <div 
-                      className={cn("h-full transition-all duration-500", usageCount >= 5 ? "bg-red-500" : "bg-brand-accent")}
-                      style={{ width: `${Math.min((usageCount / 5) * 100, 100)}%` }}
+                      className={cn("h-full transition-all duration-500", usageCount >= 3 ? "bg-red-500" : "bg-brand-accent")}
+                      style={{ width: `${Math.min((usageCount / 3) * 100, 100)}%` }}
                     />
                  </div>
               </div>

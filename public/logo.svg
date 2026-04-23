@@ -1,8 +1,0 @@
-<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M60 40H75L65 160H50L60 40Z" fill="black"/>
-  <path d="M125 40H140L130 160H115L125 40Z" fill="black"/>
-  <path d="M40 75H160L165 90H45L40 75Z" fill="black"/>
-  <path d="M35 110H155L160 125H40L35 110Z" fill="black"/>
-  <path d="M70 120C70 120 75 80 100 80C125 80 110 130 90 130C70 130 75 100 75 100" stroke="#3B82F6" stroke-width="8" stroke-linecap="round"/>
-  <path d="M110 80V120H125" stroke="#3B82F6" stroke-width="8" stroke-linecap="round"/>
-</svg>

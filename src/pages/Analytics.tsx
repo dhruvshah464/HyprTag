@@ -38,13 +38,13 @@ import { cn } from '../lib/utils';
 const COLORS = ['#60a5fa', '#f87171', '#fbbf24', '#c084fc'];
 
 export default function Analytics() {
-  const { isElite } = useAuth();
+  const { user, isElite } = useAuth();
   const [stats, setStats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d' | 'ALL'>('30d');
 
   useEffect(() => {
-    if (!auth.currentUser) return;
+    if (!user) return;
     setLoading(true);
 
     try {
@@ -63,7 +63,7 @@ export default function Analytics() {
       if (startDate) {
         q = query(
           collection(db, "generations"),
-          where("userId", "==", auth.currentUser.uid),
+          where("userId", "==", user.uid),
           where("createdAt", ">=", Timestamp.fromDate(startDate)),
           orderBy("createdAt", "desc"),
           limit(50)
@@ -71,7 +71,7 @@ export default function Analytics() {
       } else {
         q = query(
           collection(db, "generations"),
-          where("userId", "==", auth.currentUser.uid),
+          where("userId", "==", user.uid),
           orderBy("createdAt", "desc"),
           limit(100)
         );
@@ -91,7 +91,7 @@ export default function Analytics() {
       console.error(e);
       setLoading(false);
     }
-  }, [timeRange]);
+  }, [user, timeRange]);
 
   const totalReach = stats.reduce((acc, curr) => acc + (curr.reach || 0), 0);
   const totalEngagement = stats.reduce((acc, curr) => acc + (curr.likes || 0) + (curr.comments || 0), 0);

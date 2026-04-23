@@ -124,15 +124,23 @@ export default function EliteOnboarding() {
                  ))}
               </div>
 
-              <button 
-                onClick={() => setPhase(2)}
-                className="group relative px-12 py-6 bg-white text-slate-950 font-bold uppercase tracking-[0.4em] text-xs skew-x-[-12deg] overflow-hidden transition-all hover:skew-x-0"
-              >
-                <div className="absolute inset-0 bg-brand-accent translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-500 origin-left" />
-                <span className="relative z-10 flex items-center gap-3">
-                  Initialize Elite OS <ArrowRight className="w-4 h-4" />
-                </span>
-              </button>
+              <div className="flex flex-col items-center gap-6">
+                <button 
+                  onClick={() => setPhase(2)}
+                  className="group relative px-12 py-6 bg-white text-slate-950 font-bold uppercase tracking-[0.4em] text-xs skew-x-[-12deg] overflow-hidden transition-all hover:skew-x-0"
+                >
+                  <div className="absolute inset-0 bg-brand-accent translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-500 origin-left" />
+                  <span className="relative z-10 flex items-center gap-3">
+                    Initialize Elite OS <ArrowRight className="w-4 h-4" />
+                  </span>
+                </button>
+                <button 
+                  onClick={() => navigate('/')}
+                  className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] hover:text-white transition-colors"
+                >
+                  Skip Neural Calibration, jump to Hub
+                </button>
+              </div>
             </motion.div>
           )}
 
@@ -198,6 +206,21 @@ export default function EliteOnboarding() {
                 <p>&gt; AUTH_LEVEL_HIERARCHY: LEVEL_9_COMMANDER</p>
                 <p>&gt; NEURAL_LINK_INTEGRITY: 100%</p>
                 <p>&gt; PROPRIETARY_ALGO_LOADED: INSTA_X_TIKTOK_SYNC_V4.2</p>
+              </div>
+
+              <div className="flex justify-center gap-4 pt-4">
+                <button 
+                  onClick={() => setPhase(3)}
+                  className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em] hover:text-brand-accent transition-colors py-2 px-4 border border-white/5 rounded-full bg-white/5 hover:bg-brand-accent/10"
+                >
+                  Fast-Forward Handshake
+                </button>
+                <button 
+                  onClick={() => navigate('/')}
+                  className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.3em] hover:text-slate-400 transition-colors py-2 px-4 border border-white/5 rounded-full bg-white/5"
+                >
+                  Abort Calibration, jump to Center
+                </button>
               </div>
             </motion.div>
           )}

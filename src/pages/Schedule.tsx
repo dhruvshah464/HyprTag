@@ -16,21 +16,23 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { db, auth, handleFirestoreError } from '../lib/firebase';
+import { useAuth } from '../lib/auth';
 import { collection, query, where, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { NavLink } from 'react-router-dom';
 
 export default function Schedule() {
+  const { user } = useAuth();
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!auth.currentUser) return;
+    if (!user) return;
 
     try {
       const q = query(
         collection(db, "scheduledPosts"),
-        where("userId", "==", auth.currentUser.uid),
+        where("userId", "==", user.uid),
         orderBy("scheduledTime", "desc") // Latest first for calendar view
       );
 

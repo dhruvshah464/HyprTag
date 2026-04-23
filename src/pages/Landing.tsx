@@ -23,7 +23,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 bg-slate-950 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-              <img src="/logo.svg" alt="Logo" className="w-full h-full object-cover scale-150" />
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-cover scale-150" />
             </div>
             <span className="text-2xl font-display font-bold tracking-tighter italic">Hypr<span className="text-brand-accent">Tags</span></span>
           </div>
@@ -150,7 +150,7 @@ export default function Landing() {
                   />
                   <div className="absolute inset-0 flex items-center justify-center">
                      <div className="w-20 h-20 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center shadow-2xl animate-pulse overflow-hidden">
-                        <img src="/logo.svg" alt="Logo" className="w-12 h-12 object-cover scale-150" />
+                        <img src="/logo.png" alt="Logo" className="w-12 h-12 object-cover scale-150" />
                      </div>
                   </div>
                </div>

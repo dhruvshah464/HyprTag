@@ -21,7 +21,8 @@ import {
   Loader2,
   Check,
   ArrowRight,
-  Lock
+  Lock,
+  X
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Link } from 'react-router-dom';
@@ -48,7 +49,7 @@ interface Task {
 }
 
 export default function Dashboard() {
-  const { isElite } = useAuth();
+  const { user, isElite, demoCompleted, setDemoCompleted } = useAuth();
   const [stats, setStats] = useState<any[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [optimizing, setOptimizing] = useState(false);
@@ -56,29 +57,66 @@ export default function Dashboard() {
   const [competitors, setCompetitors] = useState<any[]>([]);
   const [scheduled, setScheduled] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showDemo, setShowDemo] = useState(false);
+  const [demoStep, setDemoStep] = useState(0);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  useEffect(() => {
+    if (!demoCompleted) {
+      setTimeout(() => setShowDemo(true), 1500);
+    }
+  }, [demoCompleted]);
+
+  const demoStages = [
+    {
+      title: "Tactical Overwatch",
+      desc: "This is your primary Command Center. Here, we synchronize multi-platform signals into actionable growth trajectory.",
+      target: "command-center"
+    },
+    {
+      title: "Signal Matrix",
+      desc: "Monitor your aggregate reach and pipeline density across all active clusters.",
+      target: "signal-matrix"
+    },
+    {
+      title: "Neural Gating",
+      desc: "Observe how Elite features like Neural Guard and Viral Velocity Engine are currently restricted. Deployment requires Elite credentials.",
+      target: "premium-features"
+    }
+  ];
+
+  const handleNextDemo = () => {
+    if (demoStep < demoStages.length - 1) {
+      setDemoStep(s => s + 1);
+    } else {
+      setShowDemo(false);
+      setDemoCompleted(true);
+      setShowUpgradeModal(true);
+    }
+  };
 
   const [usageStats, setUsageStats] = useState({ gens: 0, intel: 0 });
   const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!auth.currentUser) return;
+    if (!user) return;
     setLocalError(null);
 
     const qGenerations = query(
       collection(db, "generations"),
-      where("userId", "==", auth.currentUser.uid),
+      where("userId", "==", user.uid),
       orderBy("createdAt", "desc"),
       limit(7)
     );
 
     const qTasks = query(
       collection(db, "scheduledPosts"),
-      where("userId", "==", auth.currentUser.uid)
+      where("userId", "==", user.uid)
     );
 
     const qCompetitors = query(
       collection(db, "competitorInsights"),
-      where("userId", "==", auth.currentUser.uid),
+      where("userId", "==", user.uid),
       orderBy("createdAt", "desc"),
       limit(3)
     );
@@ -87,8 +125,8 @@ export default function Dashboard() {
       onSnapshot(qGenerations, (snapshot) => {
         setStats(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).reverse());
       }, (err) => {
-        console.error(err);
-        setLocalError(err.message);
+        console.error("[Neural Link Failure]", err);
+        setLocalError("Strategy Stream Interrupted: Check permissions.");
       }),
 
       onSnapshot(qTasks, (snapshot) => {
@@ -96,37 +134,37 @@ export default function Dashboard() {
         setTasks(data);
         setScheduled(data.filter(t => t.status === 'scheduled').sort((a,b) => new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime()));
       }, (err) => {
-        console.error(err);
-        setLocalError(err.message);
+        console.error("[Task Matrix Failure]", err);
+        setLocalError("Workflow Stream Interrupted.");
       }),
 
       onSnapshot(qCompetitors, (snapshot) => {
         setCompetitors(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         setLoading(false);
       }, (err) => {
-        console.error(err);
-        setLocalError(err.message);
+        console.error("[Intel Nexus Failure]", err);
+        setLocalError("Intelligence Stream Interrupted.");
       })
     ];
 
     async function fetchUsage() {
-      if (!auth.currentUser || isElite) return;
+      if (!user || isElite) return;
       try {
-        const qGens = query(collection(db, "generations"), where("userId", "==", auth.currentUser.uid));
-        const qInt = query(collection(db, "competitorInsights"), where("userId", "==", auth.currentUser.uid));
+        const qGens = query(collection(db, "generations"), where("userId", "==", user.uid));
+        const qInt = query(collection(db, "competitorInsights"), where("userId", "==", user.uid));
         const [sGens, sInt] = await Promise.all([
           getCountFromServer(qGens),
           getCountFromServer(qInt)
         ]);
         setUsageStats({ gens: sGens.data().count, intel: sInt.data().count });
       } catch (e) {
-        console.error(e);
+        console.error("[Quota Trace]", e);
       }
     }
     fetchUsage();
 
     return () => unsubs.forEach(unsub => unsub());
-  }, [auth.currentUser, isElite]);
+  }, [user?.uid, isElite]);
 
   const totalReach = stats.reduce((acc, curr) => acc + (curr.reach || 0), 0);
   const pipelineIdeas = tasks.filter(t => t.status === 'idea').length;
@@ -147,7 +185,109 @@ export default function Dashboard() {
   }));
 
   return (
-    <div className="space-y-12 pb-20 max-w-[1400px] mx-auto">
+    <div className="space-y-12 pb-20 max-w-[1400px] mx-auto relative">
+      {/* Demo Overlay */}
+      <AnimatePresence>
+        {showDemo && (
+          <motion.div 
+            key="demo-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-6"
+          >
+             <motion.div 
+               layoutId="tour-box"
+               className="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl relative border-4 border-brand-accent/20"
+             >
+                <button 
+                   onClick={() => setDemoCompleted(true)}
+                   className="absolute top-6 right-6 p-2 text-slate-300 hover:text-slate-900 transition-all hover:rotate-90"
+                   title="Skip Overview"
+                >
+                   <X className="w-5 h-5" />
+                </button>
+                <div className="absolute -top-6 -left-6 w-12 h-12 bg-brand-accent rounded-2xl flex items-center justify-center shadow-lg transform -rotate-12">
+                   <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <div className="space-y-6">
+                   <div className="space-y-2">
+                      <p className="text-[10px] font-bold text-brand-accent uppercase tracking-[0.3em]">Phase {demoStep + 1} of {demoStages.length}</p>
+                      <h3 className="text-3xl font-display font-bold italic tracking-tight text-slate-900">{demoStages[demoStep].title}</h3>
+                      <p className="text-slate-500 text-sm leading-relaxed italic">"{demoStages[demoStep].desc}"</p>
+                   </div>
+                   <button 
+                     onClick={handleNextDemo}
+                     className="btn-hypr-primary w-full h-14 text-xs tracking-widest uppercase flex items-center justify-center gap-3"
+                   >
+                      {demoStep === demoStages.length - 1 ? 'Finalize Initialization' : 'Advance Directive'} <ArrowRight className="w-4 h-4" />
+                   </button>
+                </div>
+             </motion.div>
+          </motion.div>
+        )}
+
+        {showUpgradeModal && (
+          <motion.div 
+            key="upgrade-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[70] bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-6"
+          >
+             <motion.div 
+               initial={{ scale: 0.9, opacity: 0 }}
+               animate={{ scale: 1, opacity: 1 }}
+               className="bg-slate-900 rounded-[3rem] p-12 max-w-xl w-full shadow-2xl relative border border-brand-accent/30 overflow-hidden"
+             >
+                <button 
+                   onClick={() => setShowUpgradeModal(false)}
+                   className="absolute top-8 right-8 p-2 text-slate-600 hover:text-white transition-all hover:scale-110"
+                   title="Dismiss Upgrade"
+                >
+                   <X className="w-6 h-6" />
+                </button>
+                <div className="absolute top-0 right-0 w-64 h-64 bg-brand-accent/20 rounded-full blur-[100px] -z-10" />
+                <div className="space-y-10 relative z-10 text-center">
+                   <div className="w-20 h-20 bg-brand-accent rounded-3xl flex items-center justify-center mx-auto shadow-2xl rotate-3">
+                      <Zap className="w-10 h-10 text-white fill-current" />
+                   </div>
+                   <div className="space-y-4">
+                      <h3 className="text-4xl font-display font-bold italic tracking-tighter text-white">Unlock Elite <span className="text-brand-accent">Protocols.</span></h3>
+                      <p className="text-slate-400 text-sm leading-relaxed">Basic initialization complete. To access multi-platform viral scoring and neural protection, your creator ID must be upgraded to <span className="text-white font-bold italic">ELITE status</span>.</p>
+                   </div>
+
+                   <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-slate-800/50 rounded-2xl border border-slate-700 text-left">
+                         <p className="text-[10px] font-bold text-brand-accent uppercase mb-1 tracking-widest">Unlimited</p>
+                         <p className="text-xs text-white font-medium">Neural Tags</p>
+                      </div>
+                      <div className="p-4 bg-slate-800/50 rounded-2xl border border-slate-700 text-left">
+                         <p className="text-[10px] font-bold text-brand-accent uppercase mb-1 tracking-widest">Proactive</p>
+                         <p className="text-xs text-white font-medium">Competitor Intel</p>
+                      </div>
+                   </div>
+
+                   <div className="pt-4 space-y-4">
+                      <button 
+                        onClick={() => window.location.href='/upgrade'}
+                        className="btn-hypr-primary w-full h-16 text-sm tracking-widest uppercase flex items-center justify-center gap-4 group"
+                      >
+                         Initialize Upgrade Packet <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </button>
+                      <button 
+                        onClick={() => setShowUpgradeModal(false)}
+                        className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] hover:text-white transition-colors"
+                      >
+                         Deploy with Base Credentials
+                      </button>
+                   </div>
+                </div>
+             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Error Alert */}
       {localError && (
         <motion.div 
@@ -355,7 +495,7 @@ export default function Dashboard() {
 
             <div className="space-y-4">
                {scheduled.slice(0, 3).map((item, i) => (
-                 <div key={item.id} className="flex items-center gap-6 p-5 bg-slate-50 border border-slate-100 rounded-2xl group hover:border-brand-accent/20 transition-all">
+                 <div key={item.id || `scheduled-${i}`} className="flex items-center gap-6 p-5 bg-slate-50 border border-slate-100 rounded-2xl group hover:border-brand-accent/20 transition-all">
                     <div className="w-12 h-12 rounded-xl bg-white flex flex-col items-center justify-center border border-slate-100 group-hover:bg-brand-accent/10 transition-colors">
                        <span className="text-[8px] font-bold text-brand-accent uppercase">{format(new Date(item.scheduledTime), 'MMM')}</span>
                        <span className="text-lg font-display font-bold leading-none text-slate-900">{format(new Date(item.scheduledTime), 'dd')}</span>
