@@ -28,7 +28,7 @@ import { useNavigate } from 'react-router-dom';
 import { EliteUpgradeModal } from '../components/EliteUpgradeModal';
 
 function getAI() {
-  const apiKey = (process.env as any).GEMINI_API_KEY || "dummy-key";
+  const apiKey = process.env.GEMINI_API_KEY!;
   return new GoogleGenAI({ apiKey });
 }
 
@@ -176,14 +176,11 @@ export default function Competitors() {
 
     setLoading(true);
     try {
-      const model = (ai as any).getGenerativeModel({
-        model: "gemini-1.5-flash",
-        systemInstruction: "You are an elite competitive intelligence agent. Your job is to extract high-velocity patterns from social media profile URLs. Always return data in strict JSON format. IMPORTANT: For growthTip, provide a SPECIFIC, ACTIONABLE example that can be implemented immediately (e.g., 'Instead of X, try using Y in your next post')."
-      });
-
-      const response = await model.generateContent({
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
         contents: [{ text: `Exhaustively analyze this competitor profile: ${url}. Provide a breakdown of their effective hashtags, their content theme (in 3-5 words), and a growth tip for us with a specific executable example.` }],
-        generationConfig: {
+        config: {
+          systemInstruction: "You are an elite competitive intelligence agent. Your job is to extract high-velocity patterns from social media profile URLs. Always return data in strict JSON format. IMPORTANT: For growthTip, provide a SPECIFIC, ACTIONABLE example that can be implemented immediately (e.g., 'Instead of X, try using Y in your next post').",
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.OBJECT,
@@ -199,7 +196,7 @@ export default function Competitors() {
         }
       });
 
-      const text = response.response.text();
+      const text = response.text;
       if (!text) throw new Error("Neural signal lost. Intelligence extraction failed.");
       
       const data = JSON.parse(text);
@@ -301,7 +298,7 @@ export default function Competitors() {
             </div>
             <button 
               disabled={loading || !url} 
-              onClick={handleAnalyze} 
+              onClick={() => handleAnalyze()} 
               className="btn-hypr-primary h-20 md:w-56 rounded-2xl flex items-center justify-center gap-3 text-sm tracking-widest uppercase shadow-xl shadow-brand-accent/20"
             >
               {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <TrendingUp className="w-6 h-6" />}
@@ -408,6 +405,43 @@ export default function Competitors() {
                    Neural Insight
                  </h4>
                  <p className="text-slate-500 text-base leading-relaxed font-light">{insight.strategyInsight}</p>
+               </div>
+
+               <div className="space-y-6 pt-4">
+                 <h3 className="hypr-label flex items-center gap-3 text-slate-400">
+                   <Layers className="w-4 h-4 text-brand-accent" /> Competitive Alignment
+                 </h3>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                   <div className="space-y-4">
+                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Your Neural Core</p>
+                     <div className="flex flex-wrap gap-2">
+                       {['saas', 'growth', 'ai'].map(tag => (
+                         <span key={tag} className="px-3 py-1.5 rounded-lg bg-white border border-slate-100 text-xs font-mono text-slate-500">#{tag}</span>
+                       ))}
+                     </div>
+                   </div>
+                   <div className="space-y-4">
+                     <p className="text-[10px] font-bold text-brand-accent uppercase tracking-widest px-1">Competitor Edge</p>
+                     <div className="flex flex-wrap gap-2">
+                       {insight.effectiveHashtags.slice(0, 3).map((tag: string) => (
+                         <span key={tag} className={cn(
+                           "px-3 py-1.5 rounded-lg border text-xs font-mono transition-all",
+                           ['saas', 'growth', 'ai'].includes(tag.toLowerCase().replace('#','')) 
+                             ? "bg-brand-accent/10 border-brand-accent/30 text-brand-accent font-bold" 
+                             : "bg-white border-slate-100 text-slate-500"
+                         )}>
+                           #{tag.replace('#','')}
+                         </span>
+                       ))}
+                     </div>
+                   </div>
+                 </div>
+                 <p className="text-[10px] text-slate-400 italic font-medium">
+                   {insight.effectiveHashtags.some((t: string) => ['saas', 'growth', 'ai'].includes(t.toLowerCase().replace('#','')))
+                     ? "Neural link detected: Direct strategic overlap on core growth signals."
+                     : "Unique signal detected: Competitor is targeting an orthogonal audience segment."
+                   }
+                 </p>
                </div>
             </div>
 

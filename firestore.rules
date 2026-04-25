@@ -12,7 +12,7 @@ service cloud.firestore {
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
     function isAdmin() { return isSignedIn() && request.auth.token.email == "464dhruvshah@gmail.com"; }
     function isValidId(id) { 
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9.\\-_]+$'); 
     }
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
@@ -21,8 +21,11 @@ service cloud.firestore {
     
     function isValidGeneration(data) {
       return data.userId == request.auth.uid 
-        && data.content is string && data.content.size() <= 7000
-        && data.result is map
+        && (data.get('content', '') is string && data.get('content', '').size() <= 10000)
+        && (data.get('type', 'image') in ['image', 'video', 'analysis'])
+        && (data.get('videoUrl', null) is string || data.get('videoUrl', null) == null)
+        && (data.get('result', null) is map || data.get('result', null) == null)
+        && (data.get('metadata', null) is map || data.get('metadata', null) == null)
         && (data.get('reach', 0) is int)
         && (data.get('likes', 0) is int)
         && (data.get('comments', 0) is int)
@@ -35,6 +38,7 @@ service cloud.firestore {
         && (data.get('hashtags', []) is list)
         && (data.get('platforms', []) is list)
         && (data.get('scheduledTime', null) is string || data.get('scheduledTime', null) == null)
+        && (data.get('notes', null) is string || data.get('notes', null) == null)
         && (data.get('status', 'idea') in ['idea', 'draft', 'scheduled', 'published', 'pending'])
         && data.createdAt == request.time;
     }
@@ -57,7 +61,8 @@ service cloud.firestore {
         && (data.get('goals', []) is list)
         && (data.get('connections', {}) is map)
         && (data.get('socialHandles', {}) is map)
-        && (data.get('linkedPlatforms', []) is list);
+        && (data.get('linkedPlatforms', []) is list)
+        && (data.get('createdAt', request.time) <= request.time);
     }
 
     function isValidPrivateData(data) {

@@ -7,7 +7,6 @@ import {
   Calendar, 
   Zap,
   TrendingUp,
-  Cpu,
   ArrowUpRight,
   Clock,
   Layers,
@@ -15,17 +14,22 @@ import {
   ChevronRight,
   Layout,
   MessageCircle,
-  Hash,
   AlertCircle,
   ShieldCheck,
   Loader2,
   Check,
   ArrowRight,
   Lock,
-  X
+  X,
+  Users,
+  Eye,
+  Rocket,
+  Flame,
+  ArrowDownRight,
+  DollarSign
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { Link } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { db, auth, handleFirestoreError } from '../lib/firebase';
 import { useAuth } from '../lib/auth';
 import { collection, query, where, orderBy, onSnapshot, limit, Timestamp, getCountFromServer } from 'firebase/firestore';
@@ -40,68 +44,36 @@ import {
   Tooltip, 
   ResponsiveContainer 
 } from 'recharts';
-
-interface Task {
-  id: string;
-  content: string;
-  status: 'idea' | 'draft' | 'scheduled' | 'published' | 'pending';
-  scheduledTime: string;
-  createdAt: any;
-}
+import { Post } from '../lib/types';
 
 export default function Dashboard() {
   const { user, isElite, demoCompleted, setDemoCompleted } = useAuth();
-  const [stats, setStats] = useState<any[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const navigate = useNavigate();
+  const [stats, setStats] = useState<Post[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
   const [optimizing, setOptimizing] = useState(false);
   const [optSuccess, setOptSuccess] = useState(false);
-  const [competitors, setCompetitors] = useState<any[]>([]);
-  const [scheduled, setScheduled] = useState<Task[]>([]);
+  const [scheduled, setScheduled] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showDemo, setShowDemo] = useState(false);
-  const [demoStep, setDemoStep] = useState(0);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
-  useEffect(() => {
-    if (!demoCompleted) {
-      setTimeout(() => setShowDemo(true), 1500);
-    }
-  }, [demoCompleted]);
-
-  const demoStages = [
-    {
-      title: "Tactical Overwatch",
-      desc: "This is your primary Command Center. Here, we synchronize multi-platform signals into actionable growth trajectory.",
-      target: "command-center"
-    },
-    {
-      title: "Signal Matrix",
-      desc: "Monitor your aggregate reach and pipeline density across all active clusters.",
-      target: "signal-matrix"
-    },
-    {
-      title: "Neural Gating",
-      desc: "Observe how Elite features like Neural Guard and Viral Velocity Engine are currently restricted. Deployment requires Elite credentials.",
-      target: "premium-features"
-    }
-  ];
-
-  const handleNextDemo = () => {
-    if (demoStep < demoStages.length - 1) {
-      setDemoStep(s => s + 1);
-    } else {
-      setShowDemo(false);
-      setDemoCompleted(true);
-      setShowUpgradeModal(true);
-    }
+  // Growth Move Logic
+  const growthMove = {
+    title: "The 'Pattern Interruption' Reel",
+    desc: "Your audience is saturated with talking-head videos. Use a high-velocity montage with bold text overlays.",
+    hook: "Most creators are lying to you about...",
+    format: "9:16 Video (Reel/TikTok)",
+    time: "Best time: 6:45 PM"
   };
 
-  const [usageStats, setUsageStats] = useState({ gens: 0, intel: 0 });
-  const [localError, setLocalError] = useState<string | null>(null);
+  const growthInsights = [
+    { title: "Hook Strength", val: "Weak", icon: Zap, status: 'down', desc: "Your last 3 videos lost 40% of viewers in the first 3 seconds." },
+    { title: "Monetization", val: "Optimal", icon: DollarSign, status: 'up', desc: "Bio clicks have increased by 12% since the new CTA." },
+    { title: "Frequency", val: "Low", icon: Calendar, status: 'warn', desc: "Post 2 more times this week to maintain algorithm momentum." }
+  ];
 
   useEffect(() => {
     if (!user) return;
-    setLocalError(null);
 
     const qGenerations = query(
       collection(db, "generations"),
@@ -115,258 +87,187 @@ export default function Dashboard() {
       where("userId", "==", user.uid)
     );
 
-    const qCompetitors = query(
-      collection(db, "competitorInsights"),
-      where("userId", "==", user.uid),
-      orderBy("createdAt", "desc"),
-      limit(3)
-    );
-
     const unsubs = [
       onSnapshot(qGenerations, (snapshot) => {
-        setStats(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).reverse());
-      }, (err) => {
-        console.error("[Neural Link Failure]", err);
-        setLocalError("Strategy Stream Interrupted: Check permissions.");
+        setStats(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Post[]);
       }),
 
       onSnapshot(qTasks, (snapshot) => {
-        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Task[];
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setTasks(data);
-        setScheduled(data.filter(t => t.status === 'scheduled').sort((a,b) => new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime()));
-      }, (err) => {
-        console.error("[Task Matrix Failure]", err);
-        setLocalError("Workflow Stream Interrupted.");
-      }),
-
-      onSnapshot(qCompetitors, (snapshot) => {
-        setCompetitors(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        setScheduled(data.filter((t: any) => t.status === 'scheduled').sort((a,b) => new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime()));
         setLoading(false);
-      }, (err) => {
-        console.error("[Intel Nexus Failure]", err);
-        setLocalError("Intelligence Stream Interrupted.");
       })
     ];
 
-    async function fetchUsage() {
-      if (!user || isElite) return;
-      try {
-        const qGens = query(collection(db, "generations"), where("userId", "==", user.uid));
-        const qInt = query(collection(db, "competitorInsights"), where("userId", "==", user.uid));
-        const [sGens, sInt] = await Promise.all([
-          getCountFromServer(qGens),
-          getCountFromServer(qInt)
-        ]);
-        setUsageStats({ gens: sGens.data().count, intel: sInt.data().count });
-      } catch (e) {
-        console.error("[Quota Trace]", e);
-      }
-    }
-    fetchUsage();
-
     return () => unsubs.forEach(unsub => unsub());
-  }, [user?.uid, isElite]);
+  }, [user?.uid]);
 
   const totalReach = stats.reduce((acc, curr) => acc + (curr.reach || 0), 0);
-  const pipelineIdeas = tasks.filter(t => t.status === 'idea').length;
-  const pipelineDrafts = tasks.filter(t => t.status === 'draft').length;
+  const avgViralScore = stats.length > 0 
+    ? Math.round(stats.reduce((acc, curr) => acc + (curr.viralScore || 0), 0) / stats.length) 
+    : 84;
 
   const handleOptimize = async () => {
     if (!isElite) return;
     setOptimizing(true);
-    await new Promise(r => setTimeout(r, 3000));
+    await new Promise(r => setTimeout(r, 2000));
     setOptimizing(false);
     setOptSuccess(true);
     setTimeout(() => setOptSuccess(false), 5000);
   };
 
-  const chartData = stats.map(s => ({
-    name: s.createdAt ? format(s.createdAt.toDate(), 'MM/dd') : '',
-    reach: s.reach || 0
-  }));
-
   return (
-    <div className="space-y-12 pb-20 max-w-[1400px] mx-auto relative">
-      {/* Demo Overlay */}
-      <AnimatePresence>
-        {showDemo && (
-          <motion.div 
-            key="demo-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-6"
-          >
-             <motion.div 
-               layoutId="tour-box"
-               className="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl relative border-4 border-brand-accent/20"
-             >
-                <button 
-                   onClick={() => setDemoCompleted(true)}
-                   className="absolute top-6 right-6 p-2 text-slate-300 hover:text-slate-900 transition-all hover:rotate-90"
-                   title="Skip Overview"
-                >
-                   <X className="w-5 h-5" />
-                </button>
-                <div className="absolute -top-6 -left-6 w-12 h-12 bg-brand-accent rounded-2xl flex items-center justify-center shadow-lg transform -rotate-12">
-                   <Sparkles className="w-6 h-6 text-white" />
-                </div>
-                <div className="space-y-6">
-                   <div className="space-y-2">
-                      <p className="text-[10px] font-bold text-brand-accent uppercase tracking-[0.3em]">Phase {demoStep + 1} of {demoStages.length}</p>
-                      <h3 className="text-3xl font-display font-bold italic tracking-tight text-slate-900">{demoStages[demoStep].title}</h3>
-                      <p className="text-slate-500 text-sm leading-relaxed italic">"{demoStages[demoStep].desc}"</p>
-                   </div>
-                   <button 
-                     onClick={handleNextDemo}
-                     className="btn-hypr-primary w-full h-14 text-xs tracking-widest uppercase flex items-center justify-center gap-3"
-                   >
-                      {demoStep === demoStages.length - 1 ? 'Finalize Initialization' : 'Advance Directive'} <ArrowRight className="w-4 h-4" />
-                   </button>
-                </div>
-             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <div className="space-y-12 pb-20 max-w-[1400px] mx-auto text-left">
       <EliteUpgradeModal 
         isOpen={showUpgradeModal} 
         onClose={() => setShowUpgradeModal(false)}
-        title="Tactical Limit Reached"
-        description="Your creator ID has reached the maximum base bandwidth. Upgrade to Elite to unlock unlimited strategic signal extraction and viral velocity scoring."
+        title="Scale Your Profits"
+        description="Upgrade to unlock automated growth feedback, daily viral scripts, and advanced monetization tools."
       />
-
-      {/* Error Alert */}
-      {localError && (
-        <motion.div 
-          initial={{ opacity: 0, h: 0 }}
-          animate={{ opacity: 1, h: 'auto' }}
-          className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 text-xs font-bold uppercase tracking-widest"
-        >
-          <AlertCircle className="w-4 h-4" />
-          Security Protocol Error: {localError}
-        </motion.div>
-      )}
 
       {/* Header Summary */}
       <div className="flex flex-col md:flex-row justify-between items-start gap-8">
         <div className="space-y-4">
-           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-accent/10 border border-brand-accent/20 text-[10px] font-bold uppercase tracking-widest text-brand-accent">
-              <Cpu className="w-3 h-3 animate-pulse" />
-              Strategic Overwatch Active
+           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-accent/10 border border-brand-accent/20 text-[10px] font-bold uppercase tracking-widest text-brand-accent font-mono">
+              <Rocket className="w-3 h-3" />
+              Outcome-Driven Growth System
            </div>
-           <h1 className="font-display font-bold text-5xl italic lowercase tracking-tighter text-slate-900 text-left">Command<span className="text-brand-accent">Center</span></h1>
-           <p className="text-slate-500 max-w-sm text-left">Synchronizing your multi-platform growth signals into a single unified objective.</p>
-           
-           {!isElite && (
-              <div className="flex gap-6 pt-2">
-                 <div className="space-y-1">
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-white/20">Generations Left</p>
-                    <p className="text-sm font-bold text-brand-accent">{Math.max(5 - usageStats.gens, 0)}/5</p>
-                 </div>
-                 <div className="space-y-1 border-l border-white/5 pl-6">
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-white/20">Pulse Scans Left</p>
-                    <p className="text-sm font-bold text-brand-accent">{Math.max(3 - usageStats.intel, 0)}/3</p>
-                 </div>
-              </div>
-           )}
+           <h1 className="font-display font-bold text-5xl italic tracking-tighter text-slate-900">Welcome back, <span className="text-brand-accent">{user?.displayName?.split(' ')[0] || 'Creator'}</span></h1>
+           <p className="text-slate-500 max-w-sm italic">"The system has identified 2 major growth leaks in your last audit."</p>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 w-full md:w-auto">
-           <QuickAction to="/generator" icon={Zap} label="Init Cluster" />
-           <QuickAction to="/planner" icon={Layout} label="Draft Flow" />
-           <QuickAction to="/competitors" icon={Target} label="Pulse Scan" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full md:w-auto">
+           <QuickAction to="/generator" icon={Rocket} label="Generate" />
+           <QuickAction to="/planner" icon={Layout} label="Planner" />
+           <QuickAction to="/earn" icon={DollarSign} label="Earn" />
+           <QuickAction to="/settings" icon={ShieldCheck} label="Audit" />
         </div>
       </div>
 
-      {/* Global Signal Matrix */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard label="Reach Aggregate" value={totalReach.toLocaleString()} change="+12%" icon={TrendingUp} />
-        <StatCard label="Pipeline Density" value={tasks.length.toString()} change="High" icon={Layers} />
-        <StatCard label="Scheduled Load" value={scheduled.length.toString()} change="Optimal" icon={Calendar} />
-        <StatCard label="Strategic Score" value={stats.length > 0 ? "84" : "0"} change="/100" icon={Sparkles} isAccent />
-      </div>
-
-      {/* Elite Viral Velocity Engine */}
-      {isElite && (
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Today's Growth Move - MAIN PRIORITY */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="hypr-card p-10 bg-slate-900 border-slate-800 shadow-2xl relative overflow-hidden text-left"
+          className="lg:col-span-8 p-10 bg-slate-900 rounded-[3rem] border border-slate-800 shadow-2xl relative overflow-hidden group"
         >
-          <div className="absolute top-0 right-0 p-10 opacity-20 pointer-events-none">
-             <Zap className="w-64 h-64 text-brand-accent animate-pulse" />
+          <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:scale-110 group-hover:rotate-12 transition-all duration-700">
+             <Flame className="w-64 h-64 text-brand-accent" />
           </div>
           
           <div className="relative z-10 space-y-10">
-             <div className="flex justify-between items-start">
+             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="space-y-2">
-                   <div className="flex items-center gap-2 text-brand-accent font-mono text-[10px] tracking-[0.4em] font-bold uppercase">
-                      <div className="w-2 h-2 rounded-full bg-brand-accent animate-ping" /> Live Signal Extraction
+                   <div className="flex items-center gap-2 text-brand-accent font-bold text-[10px] tracking-widest uppercase font-mono">
+                      <div className="w-2 h-2 rounded-full bg-brand-accent animate-ping" /> Today's Growth Move
                    </div>
-                   <h2 className="text-4xl font-display font-bold italic tracking-tight text-white">Viral Velocity <span className="text-brand-accent">Engine</span></h2>
+                   <h2 className="text-4xl font-display font-bold italic tracking-tight text-white">{growthMove.title}</h2>
                 </div>
-                <div className="flex gap-4">
-                   <div className="text-right">
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Global Velocity</p>
-                      <p className="text-xl font-display font-bold italic text-white">942.8 msg/s</p>
-                   </div>
+                <div className="flex bg-white/5 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 items-center gap-4">
+                    <div className="text-right">
+                       <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Recommended Slot</p>
+                       <p className="text-sm font-bold text-white">{growthMove.time}</p>
+                    </div>
+                    <Clock className="w-5 h-5 text-brand-accent" />
                 </div>
              </div>
 
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="md:col-span-2 h-[200px] bg-slate-800/50 rounded-2xl border border-slate-700 p-6 flex items-center justify-center relative group">
-                   <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="flex gap-1 items-end h-32">
-                         {[40, 70, 45, 90, 65, 80, 50, 95, 75, 60, 85, 55, 70, 40].map((h, i) => (
-                           <motion.div 
-                             key={i}
-                             initial={{ height: 0 }}
-                             animate={{ height: `${h}%` }}
-                             transition={{ duration: 1, delay: i * 0.05, repeat: Infinity, repeatType: 'reverse' }}
-                             className="w-4 bg-brand-accent/40 rounded-t-sm"
-                           />
-                         ))}
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                   <p className="text-slate-400 font-light italic leading-relaxed text-sm">"{growthMove.desc}"</p>
+                   <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-4">
+                      <div className="space-y-1">
+                         <p className="text-[8px] font-bold text-brand-accent uppercase tracking-widest">The Hook</p>
+                         <p className="text-sm font-bold text-white italic">"{growthMove.hook}"</p>
                       </div>
                    </div>
-                   <div className="relative z-10 text-center space-y-1">
-                      <p className="text-[10px] font-bold text-brand-accent uppercase tracking-[0.3em] font-mono">Real-time Pulse Detected</p>
-                      <p className="text-xs text-slate-400 font-light italic">"Neural pattern analysis confirms high-velocity growth potential in your tech-cluster."</p>
-                   </div>
                 </div>
-
-                <div className="space-y-4">
-                   <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">High-Signal Clusters</h3>
-                   <div className="space-y-3">
-                      <SignalPulse tag="neural" velocity="9.8/10" color="brand-accent" />
-                      <SignalPulse tag="growth" velocity="8.4/10" color="emerald-500" />
-                      <SignalPulse tag="strat" velocity="7.9/10" color="blue-400" />
+                <div className="flex flex-col justify-between items-end gap-6">
+                   <div className="flex gap-2">
+                      <div className="px-3 py-1 bg-slate-800 border border-slate-700 rounded-lg text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                         {growthMove.format}
+                      </div>
+                      <div className="px-3 py-1 bg-brand-accent/20 border border-brand-accent/30 rounded-lg text-[10px] font-bold text-brand-accent uppercase tracking-widest">
+                         High ROI
+                      </div>
                    </div>
+                   <button 
+                     onClick={() => navigate('/generator')}
+                     className="w-full h-16 bg-brand-accent text-white rounded-3xl flex items-center justify-center gap-3 text-[10px] font-bold uppercase tracking-widest hover:scale-[1.02] transition-all shadow-2xl shadow-brand-accent/20"
+                   >
+                      Generate Content Now <ArrowRight className="w-4 h-4" />
+                   </button>
                 </div>
              </div>
           </div>
         </motion.div>
-      )}
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Trajectory Pane */}
-        <div className="lg:col-span-8 hypr-card p-10 bg-white border-slate-200 relative overflow-hidden">
-           <div className="flex justify-between items-center mb-10">
-              <div className="space-y-1">
-                 <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-slate-400 flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4 text-brand-accent" />
-                    Neural Reach Trajectory
-                 </h3>
-                 <p className="text-lg font-display font-light italic text-slate-700">Projected connectivity across active clusters</p>
-              </div>
-              <Link to="/analytics" className="text-[10px] font-bold uppercase tracking-widest text-brand-accent hover:underline flex items-center gap-2">
-                 Full Audit <ArrowUpRight className="w-3 h-3" />
-              </Link>
+        {/* Growth Insights Panel */}
+        <div className="lg:col-span-4 p-8 bg-white border border-slate-100 rounded-[3rem] shadow-sm space-y-8">
+           <div className="flex justify-between items-center">
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Growth Feedback</h3>
+              <Sparkles className="w-4 h-4 text-brand-accent" />
            </div>
            
-           <div className="h-[340px] w-full min-h-[300px]">
-              {chartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                  <AreaChart data={chartData}>
+           <div className="space-y-4">
+              {growthInsights.map((insight, i) => (
+                <div key={i} className="p-6 bg-slate-50 border border-slate-100 rounded-2xl space-y-3 group hover:border-brand-accent/20 transition-all">
+                   <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                         <div className="w-8 h-8 rounded-xl bg-white border border-slate-100 flex items-center justify-center">
+                            <insight.icon className={cn("w-4 h-4", 
+                              insight.status === 'up' ? "text-emerald-500" : 
+                              insight.status === 'down' ? "text-red-500" : "text-amber-500"
+                            )} />
+                         </div>
+                         <span className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">{insight.title}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                         <span className={cn("text-[10px] font-bold", 
+                            insight.status === 'up' ? "text-emerald-500" : 
+                            insight.status === 'down' ? "text-red-500" : "text-amber-500"
+                         )}>{insight.val}</span>
+                         {insight.status === 'up' ? <TrendingUp className="w-3 h-3 text-emerald-500" /> : 
+                          insight.status === 'down' ? <ArrowDownRight className="w-3 h-3 text-red-500" /> : 
+                          <AlertCircle className="w-3 h-3 text-amber-500" />}
+                      </div>
+                   </div>
+                   <p className="text-[10px] text-slate-500 font-light leading-relaxed italic">"{insight.desc}"</p>
+                </div>
+              ))}
+           </div>
+        </div>
+      </div>
+
+      {/* Simplified Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard label="Monthly Growth" value={totalReach.toLocaleString()} change="+122%" icon={Eye} />
+        <StatCard label="Pipeline Efficiency" value={`${avgViralScore}%`} change="High" icon={TrendingUp} isAccent />
+        <StatCard label="Brand Reach" value="Optimal" icon={Target} isEliteLocked={!isElite} />
+        <StatCard label="Revenue Potential" value="$1.2k" change="Est." icon={DollarSign} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+         {/* Reach Chart */}
+         <div className="lg:col-span-8 p-10 bg-white border border-slate-100 rounded-[3rem] shadow-sm relative overflow-hidden">
+            <div className="flex justify-between items-center mb-10">
+               <div className="space-y-1">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                     <BarChart3 className="w-4 h-4 text-brand-accent" />
+                     Performance Trends
+                  </h3>
+               </div>
+               <Link to="/analytics" className="text-[10px] font-bold uppercase tracking-widest text-brand-accent hover:underline flex items-center gap-2 font-mono">
+                  Advanced Metrics <ArrowUpRight className="w-3 h-3" />
+               </Link>
+            </div>
+            
+            <div className="h-[300px]">
+               <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={stats.map(s => ({ 
+                    name: s.createdAt ? format(s.createdAt.toDate(), 'MM/dd') : '', 
+                    reach: s.reach || 0 
+                  })).reverse()}>
                     <defs>
                       <linearGradient id="dbReach" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#60a5fa" stopOpacity={0.2}/>
@@ -377,142 +278,59 @@ export default function Dashboard() {
                     <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} axisLine={false} tickLine={false} />
                     <YAxis stroke="#94a3b8" fontSize={10} axisLine={false} tickLine={false} />
                     <Tooltip 
-                      contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                      contentStyle={{ backgroundColor: '#ffffff', border: 'none', borderRadius: '12px', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }}
                       itemStyle={{ color: '#2563eb' }}
                     />
                     <Area type="monotone" dataKey="reach" stroke="#2563eb" strokeWidth={3} fillOpacity={1} fill="url(#dbReach)" />
                   </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-full flex flex-col items-center justify-center text-white/10 uppercase tracking-[0.4em] font-bold text-xs gap-4">
-                   <div className="w-16 h-px bg-white/10" />
-                   Awaiting Growth Signals
-                   <div className="w-16 h-px bg-white/10" />
-                </div>
-              )}
-           </div>
-        </div>
-
-        {/* Pipeline Status */}
-        <div className="lg:col-span-4 hypr-card p-10 space-y-10">
-           <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-slate-400 flex items-center gap-2">
-              <Layout className="w-4 h-4 text-brand-accent" />
-              Pipeline Metrics
-           </h3>
-           
-           <div className="space-y-6">
-              <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl space-y-4">
-                 <div className="flex justify-between items-end">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Incubating Ideas</span>
-                    <span className="text-2xl font-display italic text-slate-700">{pipelineIdeas}</span>
-                 </div>
-                 <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <motion.div initial={{ width: 0 }} animate={{ width: '45%' }} className="h-full bg-slate-300" />
-                 </div>
-              </div>
-
-              <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl space-y-4">
-                 <div className="flex justify-between items-end">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">In Design Phase</span>
-                    <span className="text-2xl font-display italic text-slate-700">{pipelineDrafts}</span>
-                 </div>
-                 <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <motion.div initial={{ width: 0 }} animate={{ width: '65%' }} className="h-full bg-brand-accent/50" />
-                 </div>
-              </div>
-
-              <Link to="/planner" className="flex items-center justify-center gap-3 w-full h-16 border border-slate-100 bg-slate-50 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all">
-                 Enter Pipeline <ChevronRight className="w-4 h-4" />
-              </Link>
-           </div>
-        </div>
-      </div>
-
-      {/* Footer Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-         {/* Upcoming Schedule */}
-         <div className="hypr-card p-10 space-y-8">
-            <div className="flex justify-between items-center">
-               <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-slate-400 flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-brand-accent" />
-                  Deployment Sequence
-               </h3>
-               <Link to="/schedule" className="text-[10px] font-bold uppercase tracking-widest text-brand-accent hover:underline">Full Timeline</Link>
+               </ResponsiveContainer>
             </div>
+         </div>
 
+         {/* Winning Posts */}
+         <div className="lg:col-span-4 p-10 bg-white border border-slate-100 rounded-[3rem] shadow-sm space-y-8">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Winning Content</h3>
             <div className="space-y-4">
-               {scheduled.slice(0, 3).map((item, i) => (
-                 <div key={item.id || `scheduled-${i}`} className="flex items-center gap-6 p-5 bg-slate-50 border border-slate-100 rounded-2xl group hover:border-brand-accent/20 transition-all">
-                    <div className="w-12 h-12 rounded-xl bg-white flex flex-col items-center justify-center border border-slate-100 group-hover:bg-brand-accent/10 transition-colors">
-                       <span className="text-[8px] font-bold text-brand-accent uppercase">{format(new Date(item.scheduledTime), 'MMM')}</span>
-                       <span className="text-lg font-display font-bold leading-none text-slate-900">{format(new Date(item.scheduledTime), 'dd')}</span>
+               {stats.slice(0, 3).map((post, i) => (
+                 <div key={post.id || i} className="flex items-center gap-4 p-4 bg-slate-50 border border-slate-100 rounded-2xl group transition-all hover:bg-white hover:border-brand-accent/20">
+                    <div className="w-12 h-12 bg-white rounded-xl flex flex-col items-center justify-center border border-slate-100">
+                       <span className="text-[14px] font-display font-bold text-slate-900 group-hover:text-brand-accent">{post.viralScore || 85}</span>
+                       <span className="text-[6px] font-bold text-slate-400 uppercase tracking-widest">Score</span>
                     </div>
                     <div className="flex-grow">
-                       <p className="text-sm font-light text-slate-700 line-clamp-1 italic">"{item.content}"</p>
-                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mt-1">
-                          Deploying at {format(new Date(item.scheduledTime), 'hh:mm a')}
-                       </p>
+                       <p className="text-[10px] font-light text-slate-700 line-clamp-1 italic">"{post.content || 'Generating Insights...'}"</p>
+                       <p className="text-[8px] font-bold text-emerald-500 uppercase tracking-widest mt-1">High Traction</p>
                     </div>
-                    <div className="w-2 h-2 rounded-full bg-brand-accent/40 animate-pulse" />
+                    <ArrowUpRight className="w-3 h-3 text-slate-300 group-hover:text-brand-accent transition-colors" />
                  </div>
                ))}
-               {scheduled.length === 0 && (
-                 <div className="h-44 flex flex-col items-center justify-center gap-4 border border-dashed border-slate-200 rounded-3xl">
-                    <Calendar className="w-8 h-8 text-slate-200" />
-                    <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest font-mono">No Active Synchronizations</p>
+               {stats.length === 0 && (
+                 <div className="h-44 flex flex-col items-center justify-center gap-4 border border-dashed border-slate-100 rounded-3xl">
+                    <Sparkles className="w-8 h-8 text-slate-100" />
+                    <p className="text-[8px] font-bold text-slate-200 uppercase tracking-widest">Awaiting First Win</p>
                  </div>
                )}
             </div>
+            <button 
+              onClick={handleOptimize}
+              disabled={optimizing || optSuccess}
+              className="w-full h-14 bg-slate-900 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-900/10 flex items-center justify-center gap-2"
+            >
+               {optimizing ? <Loader2 className="w-4 h-4 animate-spin" /> : optSuccess ? <><Check className="w-4 h-4" /> Optimized</> : "Run Full Content Audit"}
+            </button>
          </div>
+      </div>
 
-         {/* Strategic Multipliers */}
-         <div className={cn(
-           "hypr-card p-10 relative overflow-hidden group",
-           isElite ? "bg-brand-accent/[0.05] border-brand-accent/40 shadow-2xl shadow-brand-accent/10" : "bg-brand-accent/[0.02] border-brand-accent/20"
-         )}>
-            <div className="absolute -top-32 -right-32 w-80 h-80 bg-brand-accent/10 rounded-full blur-[120px] group-hover:bg-brand-accent/20 transition-all" />
-            
-            <div className="relative z-10 space-y-10">
-               <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-3xl font-display font-bold italic tracking-tighter mb-4 text-slate-900 text-left">Elite<span className="text-brand-accent">Insights</span></h3>
-                    <p className="text-slate-500 text-sm italic text-left">{isElite ? "\"Neural Guard: No suppression signatures detected. Multi-platform sync operational.\"" : "\"Upgrade to Elite to unlock proactive neural growth scans.\""}</p>
-                  </div>
-                  {isElite && (
-                    <div className="w-10 h-10 rounded-xl bg-brand-accent/20 border border-brand-accent/30 flex items-center justify-center">
-                       <ShieldCheck className="w-5 h-5 text-brand-accent" />
-                    </div>
-                  )}
-               </div>
-
-               <div className="grid grid-cols-2 gap-4">
-                  <InsightSmall title="Peak Velocity" desc="6:45 PM EST" />
-                  <InsightSmall title="Signal Gap" desc={isElite ? "Viral TikTok" : "Locked"} />
-                  <InsightSmall title="ROI Trend" desc={isElite ? "+22% Monthly" : "分析中..."} />
-                  <InsightSmall title="Neural Guard" desc={isElite ? "ACTIVE" : "OFFLINE"} />
-               </div>
-
-               {isElite ? (
-                 <button 
-                   onClick={handleOptimize}
-                   disabled={optimizing || optSuccess}
-                   className="w-full h-14 bg-white text-black rounded-2xl text-[10px] font-bold uppercase tracking-[0.25em] hover:bg-brand-accent transition-all shadow-2xl shadow-brand-accent/20 flex items-center justify-center gap-2"
-                 >
-                    {optimizing ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : optSuccess ? (
-                      <><Check className="w-4 h-4" /> Global optimization Complete</>
-                    ) : (
-                      <>Execute Global Optimization</>
-                    )}
-                 </button>
-               ) : (
-                 <Link to="/upgrade" className="w-full h-14 bg-brand-accent text-white rounded-2xl text-[10px] font-bold uppercase tracking-[0.25em] flex items-center justify-center gap-2 hover:scale-[1.02] transition-all shadow-xl shadow-brand-accent/20">
-                    Initialize Elite Access <ArrowRight className="w-4 h-4" />
-                 </Link>
-               )}
-            </div>
+      {/* Footer Monetization Teaser */}
+      <div className="p-10 bg-emerald-500 rounded-[3rem] text-white flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden group">
+         <DollarSign className="absolute -bottom-10 -right-10 w-64 h-64 opacity-10 group-hover:scale-125 transition-transform duration-1000" />
+         <div className="space-y-2 relative z-10">
+            <h3 className="text-3xl font-display font-bold italic tracking-tighter">Ready to <span className="text-slate-900">Monetize?</span></h3>
+            <p className="text-emerald-100 text-sm max-w-sm">Access brand deal templates, DM scripts, and funnel blueprints designed for scale.</p>
          </div>
+         <Link to="/earn" className="h-16 px-12 bg-white text-emerald-600 rounded-2xl flex items-center justify-center gap-3 text-[10px] font-bold uppercase tracking-widest hover:scale-[1.02] transition-all shadow-xl shadow-emerald-900/10 relative z-10">
+            Open Revenue Lab <ArrowRight className="w-4 h-4" />
+         </Link>
       </div>
     </div>
   );
@@ -521,30 +339,31 @@ export default function Dashboard() {
 function StatCard({ label, value, change, icon: Icon, isAccent, isEliteLocked }: any) {
   return (
     <div className={cn(
-      "hypr-card p-8 group relative overflow-hidden active:scale-[0.98] transition-all cursor-default", 
-      isAccent && "border-brand-accent/20 bg-brand-accent/[0.02]",
-      isEliteLocked && "opacity-50 grayscale pointer-events-none"
+      "p-8 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm group relative overflow-hidden active:scale-[0.98] transition-all cursor-default", 
+      isAccent && "border-brand-accent/20 bg-brand-accent/[0.02]"
     )}>
       {isEliteLocked && (
-        <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] flex items-center justify-center z-20">
+        <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-[2px] flex items-center justify-center z-20">
            <div className="flex flex-col items-center gap-2">
               <Lock className="w-4 h-4 text-white" />
-              <span className="text-[10px] font-bold text-white uppercase tracking-widest">Elite Only</span>
+              <span className="text-[8px] font-bold text-white uppercase tracking-widest">Locked (Pro)</span>
            </div>
         </div>
       )}
-      <div className="absolute top-0 right-0 p-8 opacity-[0.05] group-hover:opacity-[0.08] transition-opacity">
+      <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity">
          <Icon className="w-24 h-24" />
       </div>
-      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">{label}</p>
+      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">{label}</p>
       <div className="flex items-end justify-between relative z-10">
          <h4 className="text-4xl font-display font-bold italic tracking-tighter text-slate-900">{value}</h4>
-         <span className={cn(
-           "text-[10px] font-bold font-mono px-2 py-0.5 rounded-lg border",
-           isAccent ? "bg-brand-accent/20 border-brand-accent/30 text-brand-accent" : "bg-slate-100 border-slate-200 text-slate-500"
-         )}>
-           {change}
-         </span>
+         {change && (
+           <span className={cn(
+             "text-[8px] font-bold px-2 py-0.5 rounded-lg border",
+             isAccent ? "bg-brand-accent/20 border-brand-accent/30 text-brand-accent" : "bg-slate-100 border-slate-200 text-slate-500"
+           )}>
+             {change}
+           </span>
+         )}
       </div>
     </div>
   );
@@ -556,33 +375,7 @@ function QuickAction({ to, icon: Icon, label }: { to: string, icon: any, label: 
        <div className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
           <Icon className="w-5 h-5 text-slate-400 group-hover:text-brand-accent transition-colors" />
        </div>
-       <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] group-hover:text-slate-900 transition-colors">{label}</span>
+       <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest group-hover:text-slate-900 transition-colors">{label}</span>
     </Link>
-  );
-}
-
-function InsightSmall({ title, desc }: { title: string, desc: string }) {
-  return (
-    <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
-       <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mb-1">{title}</p>
-       <p className="text-xs font-bold text-slate-800">{desc}</p>
-    </div>
-  );
-}
-
-function SignalPulse({ tag, velocity, color }: { tag: string, velocity: string, color: string }) {
-  return (
-    <div className="flex items-center justify-between p-4 bg-slate-800/80 border border-slate-700/50 rounded-2xl group hover:border-brand-accent/30 transition-all">
-       <div className="flex items-center gap-4 text-left">
-          <div className={cn("w-2 h-2 rounded-full", `bg-${color}`)} />
-          <div className="space-y-0.5">
-             <p className="text-xs font-bold text-white tracking-tight">#{tag}</p>
-             <p className="text-[10px] text-slate-500 font-mono italic">VELOCITY_ID_{Math.floor(Math.random() * 9000 + 1000)}</p>
-          </div>
-       </div>
-       <div className="text-right">
-          <p className="text-xs font-bold text-brand-accent font-mono">{velocity}</p>
-       </div>
-    </div>
   );
 }

@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Sparkles, 
+  Plus, 
   Video, 
   Layers, 
   Zap, 
@@ -9,7 +10,6 @@ import {
   Download, 
   Loader2, 
   Music, 
-  Type, 
   Image as ImageIcon,
   ChevronRight,
   TrendingUp,
@@ -23,9 +23,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { Link } from 'react-router-dom';
-import { GoogleGenAI } from "@google/genai";
-import { db } from '../lib/firebase';
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import { GoogleGenAI, Type } from "@google/genai";
+import { db, handleFirestoreError } from '../lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { cn } from '../lib/utils';
 
 const VEO_MODEL = "veo-3.1-lite-generate-preview";
@@ -48,32 +48,32 @@ export default function VideoGenerator() {
          </div>
 
          <div className="space-y-4 max-w-xl">
-            <h2 className="text-5xl font-display font-bold italic tracking-tighter text-slate-900">Neural <span className="text-brand-accent">Reels</span></h2>
+            <h2 className="text-5xl font-display font-bold italic tracking-tighter text-slate-900">AI <span className="text-brand-accent">Reels</span></h2>
             <p className="text-xl text-slate-500 font-light italic leading-relaxed">
-              "Deploy high-fidelity video assets synthesized through the Google Veo engine. Advanced social scripts and cinematic visual clusters available exclusively for Elite creators."
+              "Create high-quality video content using AI. Perfect for viral Reels, TikToks, and Shorts."
             </p>
          </div>
 
          <Link to="/upgrade" className="btn-hypr-primary h-16 px-12 text-xs font-bold uppercase tracking-[0.25em] flex items-center gap-3 shadow-xl shadow-brand-accent/20">
-            Initialize Upgrade Sequence <ArrowUpRight className="w-4 h-4" />
+            Upgrade to Elite <ArrowUpRight className="w-4 h-4" />
          </Link>
 
          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 pt-12 text-left">
             <div className="space-y-1">
                <p className="text-[10px] font-bold text-brand-accent uppercase tracking-widest">Veo 3.1</p>
-               <p className="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">Render Engine</p>
+               <p className="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">AI Engine</p>
             </div>
             <div className="space-y-1">
                <p className="text-[10px] font-bold text-brand-accent uppercase tracking-widest">1080P</p>
-               <p className="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">HD Mastering</p>
+               <p className="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">HD Quality</p>
             </div>
             <div className="space-y-1">
                <p className="text-[10px] font-bold text-brand-accent uppercase tracking-widest">Multi-Ratio</p>
-               <p className="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">Omni-Platform</p>
+               <p className="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">All Platforms</p>
             </div>
             <div className="space-y-1">
-               <p className="text-[10px] font-bold text-brand-accent uppercase tracking-widest">AI Scripts</p>
-               <p className="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">Strategic Hooks</p>
+               <p className="text-[10px] font-bold text-brand-accent uppercase tracking-widest">Viral Hooks</p>
+               <p className="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">Included</p>
             </div>
          </div>
       </div>
@@ -84,9 +84,38 @@ export default function VideoGenerator() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoData, setVideoData] = useState<any>(null);
+  
+  // API Key state for Veo
+  const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
+  const [apiKeyError, setApiKeyError] = useState(false);
+
+  React.useEffect(() => {
+    const checkKey = async () => {
+      if ((window as any).aistudio) {
+        const selected = await (window as any).aistudio.hasSelectedApiKey();
+        setHasApiKey(selected);
+      }
+    };
+    checkKey();
+  }, []);
+
+  const handleOpenKeyDialog = async () => {
+    if ((window as any).aistudio) {
+      await (window as any).aistudio.openSelectKey();
+      setHasApiKey(true);
+      setApiKeyError(false);
+    }
+  };
+
+  // Editable metadata state
+  const [videoTitle, setVideoTitle] = useState("");
+  const [videoMood, setVideoMood] = useState("");
   const [selectedAudio, setSelectedAudio] = useState<string>("");
+
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [isPlanning, setIsPlanning] = useState(false);
+  const [isPlanned, setIsPlanned] = useState(false);
 
   const NEURAL_TRACKS = [
     { id: 'lofi', label: 'Cinematic Lofi', mood: 'Aesthetic' },
@@ -101,40 +130,66 @@ export default function VideoGenerator() {
   const handleGenerate = async (customPrompt?: string) => {
     const finalPrompt = customPrompt || prompt;
     if (!finalPrompt) return;
+    
+    // Check API Key
+    if (!hasApiKey && (window as any).aistudio) {
+      handleOpenKeyDialog();
+      return;
+    }
+
     setIsGenerating(true);
     setVideoUrl(null);
     setVideoData(null);
     setRenderProgress(0);
-    setRenderStatus("Initializing Neural Sequence...");
+    setRenderStatus("Creating Video Script...");
     
     try {
       const ai = new GoogleGenAI({ apiKey: (process.env as any).GEMINI_API_KEY || "" });
 
       // Phase 1: Strategic Scripting
-      setRenderStatus("Analyzing Creative Directives...");
+      setRenderStatus("Planning Visuals...");
       const scriptResponse = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: `
           Generate a 15-second social media reel storyboard based on: ${finalPrompt}.
           Focus on high-engagement visual hooks for creators.
+          
           Return ONLY JSON: {
-            "title": "...",
-            "mood": "...",
-            "recommendedAudio": "...",
-            "scenes": [{ "time": "0s", "text": "...", "visual": "..." }]
+            "title": "Short punchy title",
+            "mood": "Atmosphere/vibe",
+            "recommendedAudio": "Type of music/sound",
+            "scenes": [{ 
+              "time": "Timestamp (e.g. 0s)", 
+              "text": "On-screen text or narration", 
+              "visualDescription": "Detailed cinematic scene description",
+              "visualCues": ["Specific camera action"] 
+            }]
           }
         `,
-        config: { responseMimeType: "application/json" }
+        config: { 
+          responseMimeType: "application/json"
+        }
       });
       
       const data = JSON.parse(scriptResponse.text);
       setVideoData(data);
+      setVideoTitle(data.title || "");
+      setVideoMood(data.mood || "");
 
-      // Phase 2: Neural Rendering
-      setRenderStatus("Synthesizing Visual Clusters...");
-      let operation = await ai.models.generateVideos({
+      // Phase 2: AI Video Generation
+      setRenderStatus("Initializing Neural Link...");
+      const veoApiKey = (process.env as any).API_KEY;
+      const aiVideo = new GoogleGenAI({ apiKey: veoApiKey });
+      
+      // Use the first scene's visual description or the overall prompt
+      const visualPrompt = (data.scenes && data.scenes.length > 0) 
+        ? `${data.scenes[0].visualDescription}. Mood: ${data.mood}` 
+        : finalPrompt;
+
+      setRenderStatus("Generating Video Matrix...");
+      let operation = await aiVideo.models.generateVideos({
         model: VEO_MODEL,
-        prompt: finalPrompt,
+        prompt: visualPrompt,
         config: {
           numberOfVideos: 1,
           resolution: resolution,
@@ -142,38 +197,66 @@ export default function VideoGenerator() {
         }
       });
 
-      // Polling for completion
-      let progress = 0;
+      // Poll for completion
+      let pollCount = 0;
       while (!operation.done) {
-        progress += (100 - progress) * 0.1; // Simulated progress based on polling
-        setRenderProgress(Math.round(progress));
-        setRenderStatus(getTacticalStatus(progress));
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        operation = await ai.operations.getVideosOperation({ operation });
-      }
-
-      if (operation.response?.generatedVideos?.[0]?.video?.videoBytes) {
-        const base64 = operation.response.generatedVideos[0].video.videoBytes;
-        const url = `data:video/mp4;base64,${base64}`;
-        setVideoUrl(url);
-        setRenderProgress(100);
-        setRenderStatus("Neural Reconstruction Complete.");
+        pollCount++;
+        // Display progress based on poll count (just for UI)
+        const mockProgress = Math.min(95, pollCount * 5);
+        setRenderProgress(mockProgress);
+        setRenderStatus(`Synthesizing Frames... (${Math.round(mockProgress)}%)`);
         
-        // Auto-select recommended audio
-        if (data.recommendedAudio) {
-          setSelectedAudio(data.recommendedAudio);
+        await new Promise(resolve => setTimeout(resolve, 8000));
+        try {
+          operation = await aiVideo.operations.getVideosOperation({ operation });
+        } catch (opError: any) {
+           if (opError.message?.includes("Requested entity was not found")) {
+             setHasApiKey(false);
+             setApiKeyError(true);
+             throw new Error("API Key link broken. Please re-select key.");
+           }
+           throw opError;
         }
-
-        // Auto-save to Firestore
-        await saveToFirestore(finalPrompt, url, data);
-      } else {
-        throw new Error("Neural output matrix was empty.");
       }
+
+      setRenderProgress(98);
+      setRenderStatus("Reconstructing Stream...");
+      
+      const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
+      if (!downloadLink) throw new Error("Video generation failed to return a valid URI");
+
+      // Fetch the video blob
+      const videoResponse = await fetch(downloadLink, {
+        method: 'GET',
+        headers: {
+          'x-goog-api-key': veoApiKey,
+        },
+      });
+      
+      if (!videoResponse.ok) throw new Error(`Fetch failed: ${videoResponse.statusText}`);
+      
+      const blob = await videoResponse.blob();
+      const url = URL.createObjectURL(blob);
+      
+      setVideoUrl(url);
+      setRenderProgress(100);
+      setRenderStatus("Video Ready!");
+      
+      // Auto-select recommended audio
+      if (data.recommendedAudio) {
+        setSelectedAudio(data.recommendedAudio);
+      }
+
+      // Auto-save to Firestore
+      await saveToFirestore(finalPrompt, url, data);
 
       setActiveTab('render');
     } catch (error: any) {
       console.error("Neural Video Failure:", error);
       setRenderStatus(`Handshake Failure: ${error.message || 'Unknown protocol error'}`);
+      if (error.message?.includes("API Key") || error.message?.includes("key")) {
+        setHasApiKey(false);
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -190,17 +273,42 @@ export default function VideoGenerator() {
         videoUrl: url,
         metadata: {
           ...metadata,
+          title: videoTitle || metadata.title,
+          mood: videoMood || metadata.mood,
           resolution,
           aspectRatio,
           selectedAudio: selectedAudio || metadata.recommendedAudio
         },
-        createdAt: Timestamp.now()
+        reach: 0,
+        likes: 0,
+        comments: 0,
+        createdAt: serverTimestamp()
       });
       setIsSaved(true);
     } catch (error) {
-      console.error("Firestore Save Failure:", error);
+      handleFirestoreError(error, 'create', 'generations');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const addToPlanner = async () => {
+    if (!user || !videoData) return;
+    setIsPlanning(true);
+    try {
+      await addDoc(collection(db, "scheduledPosts"), {
+        userId: user.uid,
+        content: videoTitle || videoData.title || prompt,
+        status: 'idea',
+        platforms: ['Instagram', 'TikTok'],
+        createdAt: serverTimestamp(),
+        notes: `AI Generated Video.\nMood: ${videoMood || videoData.mood}\nAudio: ${selectedAudio}\nOriginal Prompt: ${prompt}`
+      });
+      setIsPlanned(true);
+    } catch (error) {
+      handleFirestoreError(error, 'create', 'scheduledPosts');
+    } finally {
+      setIsPlanning(false);
     }
   };
 
@@ -216,20 +324,43 @@ export default function VideoGenerator() {
       <div className="text-left space-y-4">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-accent/10 border border-brand-accent/20 text-[10px] font-bold uppercase tracking-widest text-brand-accent shadow-sm">
            <Video className="w-3 h-3" />
-           Neural Reel Engine v2.0
+           AI Video Engine
         </div>
-        <h1 className="font-display font-bold text-5xl italic lowercase tracking-tighter text-slate-900 group">
-          Neural <span className="text-brand-accent">Reels</span>
+        <h1 className="font-display font-bold text-5xl italic tracking-tighter text-slate-900 group">
+          AI <span className="text-brand-accent">Reels</span>
         </h1>
-        <p className="text-slate-500 max-w-sm">Generate high-velocity social video assets from a single prompt matrix.</p>
+        <p className="text-slate-500 max-w-sm">Turn your ideas into high-quality social reels instantly.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 items-start">
         {/* Control Node */}
         <div className="lg:col-span-1 space-y-8">
            <div className="hypr-card p-8 bg-white border-slate-200 shadow-sm space-y-8">
+               {hasApiKey === false && (
+                 <motion.div 
+                   initial={{ opacity: 0, y: -10 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   className="p-5 bg-brand-accent/10 border border-brand-accent/20 rounded-2xl space-y-3 mb-6"
+                 >
+                    <div className="flex items-center gap-3">
+                       <Zap className="w-4 h-4 text-brand-accent" />
+                       <h3 className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">Neural Key Required</h3>
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-light leading-relaxed">
+                       A paid Google Cloud API key is required for high-fidelity video synthesis. 
+                       <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noreferrer" className="text-brand-accent font-bold ml-1">View Billing Docs</a>
+                    </p>
+                    <button 
+                       onClick={handleOpenKeyDialog}
+                       className="w-full py-3 bg-brand-accent text-white rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-brand-accent/20 hover:scale-[1.02] transition-all"
+                    >
+                       Connect Paid API Key
+                    </button>
+                 </motion.div>
+               )}
+
               <div className="space-y-4">
-                 <label className="hypr-label ml-1">Prompt Matrix</label>
+                 <label className="hypr-label ml-1">What's the video about?</label>
                  <textarea 
                     placeholder="E.g. A high-energy tech review of a futuristic workspace..."
                     className="w-full h-40 bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-light focus:border-brand-accent/30 focus:bg-white outline-none transition-all resize-none italic"
@@ -239,7 +370,7 @@ export default function VideoGenerator() {
               </div>
 
                <div className="space-y-4">
-                  <label className="hypr-label ml-1">Render Parameters</label>
+                  <label className="hypr-label ml-1">Video Settings</label>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Resolution</span>
@@ -344,7 +475,7 @@ export default function VideoGenerator() {
 
               <div className="space-y-4">
                 <button 
-                  onClick={handleGenerate}
+                  onClick={() => handleGenerate()}
                   disabled={isGenerating || !prompt}
                   className="w-full h-16 bg-slate-900 text-white rounded-2xl font-bold uppercase tracking-[0.3em] text-xs flex items-center justify-center gap-3 hover:bg-brand-accent transition-all shadow-xl shadow-slate-900/10 disabled:opacity-50"
                 >
@@ -435,12 +566,12 @@ export default function VideoGenerator() {
                                 "font-display font-bold italic tracking-tighter leading-tight text-white drop-shadow-2xl",
                                 aspectRatio === '9:16' ? "text-3xl" : "text-5xl"
                               )}>
-                                 {videoData?.title || "Strategic Asset Active"}
+                                 {videoTitle || videoData?.title || "Strategic Asset Active"}
                               </h2>
                               <div className="h-px w-12 bg-brand-accent mx-auto" />
                               <div className="flex items-center justify-center gap-3">
                                 <p className="text-[10px] font-bold text-white/60 uppercase tracking-[0.4em]">
-                                   {videoData?.mood || "Tactical"} protocol
+                                   {videoMood || videoData?.mood || "Tactical"} protocol
                                 </p>
                                 {selectedAudio && (
                                   <div className="flex items-center gap-2 text-brand-accent px-3 py-1 rounded-full bg-brand-accent/10 border border-brand-accent/20">
@@ -479,6 +610,17 @@ export default function VideoGenerator() {
                            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : isSaved ? <CheckCircle className="w-4 h-4" /> : <Save className="w-4 h-4" />}
                            <span className="text-[10px] font-bold uppercase tracking-widest">{isSaved ? "Saved" : "Save Matrix"}</span>
                         </button>
+                        <button 
+                          onClick={() => addToPlanner()}
+                          disabled={isPlanning || isPlanned}
+                          className={cn(
+                            "h-12 px-6 backdrop-blur-md rounded-2xl flex items-center gap-3 text-white pointer-events-auto border transition-all",
+                            isPlanned ? "bg-brand-accent/20 border-brand-accent/40 text-brand-accent" : "bg-white/10 border-white/10 hover:bg-white/20"
+                          )}
+                        >
+                           {isPlanning ? <Loader2 className="w-4 h-4 animate-spin" /> : isPlanned ? <CheckCircle className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                           <span className="text-[10px] font-bold uppercase tracking-widest">{isPlanned ? "Planned" : "Add to Planner"}</span>
+                        </button>
                      </div>
                   </div>
                </div>
@@ -488,22 +630,77 @@ export default function VideoGenerator() {
              <motion.div 
                initial={{ opacity: 0, y: 20 }}
                animate={{ opacity: 1, y: 0 }}
-               className="hypr-card p-10 bg-white border-slate-200 shadow-sm space-y-8"
+               className="hypr-card p-10 bg-white border-slate-200 shadow-sm space-y-10"
              >
+                <div className="space-y-6 text-left mb-10 overflow-hidden">
+                   <div className="flex items-center gap-3 mb-6">
+                      <Zap className="w-5 h-5 text-brand-accent" />
+                      <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-900">Customize Viral Metadata</h3>
+                   </div>
+                   
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                      <div className="space-y-3">
+                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Video Title</label>
+                         <input 
+                            type="text"
+                            value={videoTitle}
+                            onChange={(e) => setVideoTitle(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-4 text-sm font-medium focus:border-brand-accent/30 outline-none transition-all italic"
+                            placeholder="Viral Title..."
+                         />
+                      </div>
+                      <div className="space-y-3">
+                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Vibe / Mood</label>
+                         <input 
+                            type="text"
+                            value={videoMood}
+                            onChange={(e) => setVideoMood(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-4 text-sm font-medium focus:border-brand-accent/30 outline-none transition-all italic"
+                            placeholder="Atmosphere..."
+                         />
+                      </div>
+                      <div className="space-y-3">
+                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Audio/Music</label>
+                         <input 
+                            type="text"
+                            value={selectedAudio}
+                            onChange={(e) => setSelectedAudio(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 px-4 text-sm font-medium focus:border-brand-accent/30 outline-none transition-all italic"
+                            placeholder="Audio Track..."
+                         />
+                      </div>
+                   </div>
+                   <div className="h-px w-full bg-slate-50 mt-6" />
+                </div>
+
                 <div className="flex justify-between items-center">
                    <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-slate-400">Strategic Storyboard</h3>
-                   <span className="text-[10px] font-bold text-brand-accent bg-brand-accent/10 px-3 py-1 rounded-full uppercase tracking-widest">{videoData.recommendedAudio}</span>
+                   <span className="text-[10px] font-bold text-brand-accent bg-brand-accent/10 px-3 py-1 rounded-full uppercase tracking-widest">{selectedAudio}</span>
                 </div>
                 
                 <div className="space-y-6">
                    {videoData.scenes.map((scene: any, i: number) => (
-                     <div key={i} className="flex gap-6 items-start group/scene">
-                        <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-[10px] font-bold group-hover/scene:border-brand-accent/20 transition-all shrink-0">
+                     <div key={i} className="flex gap-8 items-start group/scene border-b border-slate-50 last:border-0 pb-8 last:pb-0">
+                        <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col items-center justify-center group-hover/scene:border-brand-accent/20 transition-all shrink-0 shadow-sm text-[10px] font-bold text-slate-900">
                            {scene.time}
+                           <div className="w-4 h-0.5 bg-brand-accent mt-1 opacity-40" />
                         </div>
-                        <div className="space-y-2 py-2">
-                           <p className="text-sm font-bold text-slate-900 group-hover/scene:text-brand-accent transition-colors">"{scene.text}"</p>
-                           <p className="text-xs text-slate-400 font-light italic">{scene.visual}</p>
+                        <div className="space-y-4 py-1 flex-grow">
+                           <div className="space-y-2">
+                              <p className="text-sm font-bold text-slate-900 group-hover/scene:text-brand-accent transition-colors">"{scene.text}"</p>
+                              <p className="text-xs text-slate-600 font-light italic leading-relaxed">{scene.visualDescription}</p>
+                           </div>
+                           
+                           {scene.visualCues && scene.visualCues.length > 0 && (
+                             <div className="flex flex-wrap gap-2">
+                               {scene.visualCues.map((cue: string, j: number) => (
+                                 <span key={j} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-100 text-[9px] font-bold uppercase tracking-tight text-slate-400 group-hover/scene:border-brand-accent/10 group-hover/scene:text-brand-accent/60 transition-all">
+                                   <div className="w-1 h-1 rounded-full bg-brand-accent/40" />
+                                   {cue}
+                                 </span>
+                               ))}
+                             </div>
+                           )}
                         </div>
                      </div>
                    ))}

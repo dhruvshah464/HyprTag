@@ -7,7 +7,7 @@ import {
   User
 } from 'firebase/auth';
 import { auth, db } from './firebase';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
 
 interface UserProfile {
   isElite: boolean;
@@ -77,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setDoc(userRef, {
               ...initialProfile,
               email: authUser.email,
-              createdAt: new Date().toISOString()
+              createdAt: serverTimestamp()
             }).catch(e => console.error("Error creating user doc", e));
             
             setProfile(initialProfile);

@@ -60,7 +60,9 @@ export function handleFirestoreError(error: any, operation: FirestoreErrorInfo["
   };
   
   if (error.code === 'permission-denied') {
+    console.error("Firestore Permission Denied Info:", info);
     throw new Error(JSON.stringify(info));
   }
+  console.error("Firestore Error:", error);
   throw error;
 }

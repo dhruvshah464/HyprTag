@@ -18,7 +18,7 @@ import { cn } from '../lib/utils';
 import { useAuth } from '../lib/auth';
 import { useNavigate } from 'react-router-dom';
 
-const AUTOMATIONS = [
+const DEFAULT_AUTOMATIONS = [
   {
     id: 'trend-alert',
     title: 'Velocity Trigger',
@@ -49,6 +49,32 @@ export default function Automations() {
   const { isElite } = useAuth();
   const navigate = useNavigate();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [automations, setAutomations] = useState(DEFAULT_AUTOMATIONS);
+  const [newFlowName, setNewFlowName] = useState("");
+  const [activeTab, setActiveTab ] = useState<'flows' | 'logic'>('flows');
+
+  const toggleAutomation = (id: string) => {
+    setAutomations(prev => prev.map(item => 
+      item.id === id 
+        ? { ...item, status: item.status === 'Active' || item.status === 'Enabled' ? 'Standby' : 'Active' } 
+        : item
+    ));
+  };
+
+  const handleCreateFlow = () => {
+    if (!newFlowName) return;
+    const newFlow = {
+      id: Math.random().toString(36).substr(2, 9),
+      title: newFlowName,
+      description: 'Custom autonomous sub-routine designed for strategic growth optimization.',
+      status: 'Active',
+      icon: Zap,
+      accent: 'text-brand-accent'
+    };
+    setAutomations([newFlow, ...automations]);
+    setNewFlowName("");
+    setShowCreateModal(false);
+  };
 
   return (
     <div className="space-y-16 pb-20 max-w-6xl mx-auto">
@@ -68,12 +94,34 @@ export default function Automations() {
            <h1 className="font-display font-bold text-4xl italic lowercase tracking-tighter text-slate-900">Active<span className="text-brand-accent">Automations</span></h1>
            <p className="text-slate-500 max-w-sm">Deploy autonomous sub-routines to manage your strategic growth 24/7.</p>
         </div>
-        <button 
-          onClick={() => setShowCreateModal(true)}
-          className="btn-hypr-primary h-12 px-8 text-xs font-bold uppercase tracking-widest flex items-center gap-2"
-        >
-           <Plus className="w-4 h-4" /> Create Flow
-        </button>
+        <div className="flex gap-4">
+            <div className="flex bg-slate-50 p-1 rounded-2xl border border-slate-100">
+               <button 
+                onClick={() => setActiveTab('flows')}
+                className={cn(
+                  "px-6 py-2 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all",
+                  activeTab === 'flows' ? "bg-white text-brand-accent shadow-sm" : "text-slate-400"
+                )}
+               >
+                 Active Flows
+               </button>
+               <button 
+                onClick={() => setActiveTab('logic')}
+                className={cn(
+                  "px-6 py-2 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all",
+                  activeTab === 'logic' ? "bg-white text-brand-accent shadow-sm" : "text-slate-400"
+                )}
+               >
+                 Logic Explorer
+               </button>
+            </div>
+            <button 
+              onClick={() => setShowCreateModal(true)}
+              className="btn-hypr-primary h-12 px-8 text-xs font-bold uppercase tracking-widest flex items-center gap-2"
+            >
+               <Plus className="w-4 h-4" /> Create Flow
+            </button>
+        </div>
       </div>
 
       {/* Creation Modal */}
@@ -110,7 +158,13 @@ export default function Automations() {
                    <div className="space-y-6">
                       <div className="space-y-3">
                          <label className="hypr-label ml-1">Flow Identity</label>
-                         <input type="text" placeholder="e.g. VIRAL_PULSE_GUARD" className="hypr-input text-sm font-mono tracking-widest" />
+                         <input 
+                            type="text" 
+                            placeholder="e.g. VIRAL_PULSE_GUARD" 
+                            className="hypr-input text-sm font-mono tracking-widest" 
+                            value={newFlowName}
+                            onChange={(e) => setNewFlowName(e.target.value)}
+                         />
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
@@ -133,7 +187,7 @@ export default function Automations() {
                       </div>
 
                       <button 
-                        onClick={() => setShowCreateModal(false)}
+                        onClick={handleCreateFlow}
                         className="w-full h-16 bg-brand-accent text-white rounded-2xl font-bold uppercase tracking-[0.3em] shadow-xl shadow-brand-accent/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-xs"
                       >
                          Deploy Automation
@@ -145,39 +199,109 @@ export default function Automations() {
         )}
       </AnimatePresence>
 
-       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {AUTOMATIONS.map((item) => (
-          <div key={item.id} className="hypr-card p-10 flex flex-col group hover:border-brand-accent/20 transition-all cursor-pointer relative overflow-hidden bg-white border-slate-200 shadow-sm hover:shadow-xl">
-             <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity">
-                <item.icon className="w-20 h-20" />
-             </div>
-             
-             <div className="w-16 h-16 rounded-[1.5rem] bg-slate-50 border border-slate-100 flex items-center justify-center mb-10 group-hover:bg-brand-accent/5 transition-colors">
-                <item.icon className={cn("w-7 h-7", item.accent)} />
-             </div>
-             
-             <div className="space-y-4 flex-grow">
-               <h3 className="font-bold text-2xl italic tracking-tight text-slate-800">{item.title}</h3>
-               <p className="text-base text-slate-500 font-light leading-relaxed mb-10">{item.description}</p>
-             </div>
+      {activeTab === 'logic' ? (
+        <div className="hypr-card p-12 bg-white border-slate-200 shadow-sm relative overflow-hidden">
+           <div className="absolute inset-0 bg-brand-accent/[0.01] pointer-events-none" />
+           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 relative z-10">
+              <div className="space-y-6">
+                 <div className="w-12 h-12 rounded-2xl bg-brand-accent/10 flex items-center justify-center">
+                    <TrendingUp className="w-6 h-6 text-brand-accent" />
+                 </div>
+                 <h3 className="text-xl font-display font-bold italic tracking-tight">1. Trigger Protocol</h3>
+                 <p className="text-sm text-slate-500 font-light leading-relaxed italic">"The engine monitors external signals—hashtag volume, engagement spikes, or temporal cues."</p>
+                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-3">
+                    <div className="flex justify-between items-center">
+                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Probe</span>
+                       <span className="text-[10px] font-bold text-brand-accent animate-pulse">Scanning...</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                       <motion.div animate={{ x: [-100, 300] }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }} className="w-1/3 h-full bg-brand-accent" />
+                    </div>
+                 </div>
+              </div>
 
-             <div className="pt-8 border-t border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                   <div className={cn("w-2 h-2 rounded-full", item.status === 'Active' ? 'bg-brand-accent shadow-[0_0_10px_rgba(96,165,250,0.5)]' : 'bg-slate-200')} />
-                   <span className={cn("text-[10px] font-bold uppercase tracking-widest", item.status === 'Active' ? 'text-slate-900' : 'text-slate-400')}>
-                      {item.status}
-                   </span>
-                </div>
-                <button className={cn(
-                  "w-12 h-6 rounded-full border transition-all flex items-center px-1 shadow-inner",
-                  item.status === 'Active' ? 'bg-brand-accent/20 border-brand-accent/30' : 'bg-slate-100 border-slate-200'
-                )}>
-                   <div className={cn("w-4 h-4 rounded-full transition-all", item.status === 'Active' ? 'bg-brand-accent translate-x-6' : 'bg-slate-300')} />
-                </button>
-             </div>
-          </div>
-        ))}
-      </div>
+              <div className="space-y-6 flex flex-col items-center text-center">
+                 <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center">
+                    <Cpu className="w-6 h-6 text-brand-accent" />
+                 </div>
+                 <h3 className="text-xl font-display font-bold italic tracking-tight">2. Neural Synthesis</h3>
+                 <p className="text-sm text-slate-500 font-light leading-relaxed italic">"Signals are cross-referenced with your strategic core and processed via the HyprTags logic matrix."</p>
+                 <div className="relative w-full h-24 flex items-center justify-center">
+                    <motion.div 
+                      animate={{ rotate: 360 }} 
+                      transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                      className="absolute inset-0 flex items-center justify-center"
+                    >
+                       <div className="w-20 h-20 border-2 border-dashed border-brand-accent/20 rounded-full" />
+                    </motion.div>
+                    <Layers className="w-10 h-10 text-brand-accent/40" />
+                 </div>
+              </div>
+
+              <div className="space-y-6 flex flex-col items-end text-right">
+                 <div className="w-12 h-12 rounded-2xl bg-brand-accent/10 flex items-center justify-center">
+                    <Zap className="w-6 h-6 text-brand-accent" />
+                 </div>
+                 <h3 className="text-xl font-display font-bold italic tracking-tight">3. Autonomous Action</h3>
+                 <p className="text-sm text-slate-500 font-light leading-relaxed italic">"Executed sub-routines: real-time alerts, caption refinement, or sequence realignment."</p>
+                 <div className="space-y-3 w-full">
+                    <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-between">
+                       <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                       <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest">Notification Deployed</span>
+                    </div>
+                    <div className="p-3 rounded-lg bg-brand-accent/5 border border-brand-accent/10 flex items-center justify-between opacity-50">
+                       <div className="w-2 h-2 rounded-full bg-brand-accent" />
+                       <span className="text-[9px] font-bold text-brand-accent uppercase tracking-widest">Caption Re-indexed</span>
+                    </div>
+                 </div>
+              </div>
+           </div>
+           
+           <div className="mt-12 pt-12 border-t border-slate-100 flex justify-center">
+              <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-widest italic group">
+                 Automations function as persistent <span className="text-brand-accent group-hover:scale-110 transition-transform">"observers"</span> in your creator ecosystem.
+              </div>
+           </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {automations.map((item) => (
+            <div 
+              key={item.id} 
+              onClick={() => toggleAutomation(item.id)}
+              className="hypr-card p-10 flex flex-col group hover:border-brand-accent/20 transition-all cursor-pointer relative overflow-hidden bg-white border-slate-200 shadow-sm hover:shadow-xl"
+            >
+               <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity">
+                  <item.icon className="w-20 h-20" />
+               </div>
+               
+               <div className="w-16 h-16 rounded-[1.5rem] bg-slate-50 border border-slate-100 flex items-center justify-center mb-10 group-hover:bg-brand-accent/5 transition-colors">
+                  <item.icon className={cn("w-7 h-7", item.accent)} />
+               </div>
+               
+               <div className="space-y-4 flex-grow">
+                 <h3 className="font-bold text-2xl italic tracking-tight text-slate-800">{item.title}</h3>
+                 <p className="text-base text-slate-500 font-light leading-relaxed mb-10">{item.description}</p>
+               </div>
+
+               <div className="pt-8 border-t border-slate-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                     <div className={cn("w-2 h-2 rounded-full", (item.status === 'Active' || item.status === 'Enabled') ? 'bg-brand-accent shadow-[0_0_10px_rgba(96,165,250,0.5)]' : 'bg-slate-200')} />
+                     <span className={cn("text-[10px] font-bold uppercase tracking-widest", (item.status === 'Active' || item.status === 'Enabled') ? 'text-slate-900' : 'text-slate-400')}>
+                        {item.status}
+                     </span>
+                  </div>
+                  <button className={cn(
+                    "w-12 h-6 rounded-full border transition-all flex items-center px-1 shadow-inner",
+                    (item.status === 'Active' || item.status === 'Enabled') ? 'bg-brand-accent/20 border-brand-accent/30' : 'bg-slate-100 border-slate-200'
+                  )}>
+                     <div className={cn("w-4 h-4 rounded-full transition-all", (item.status === 'Active' || item.status === 'Enabled') ? 'bg-brand-accent translate-x-6' : 'bg-slate-300')} />
+                  </button>
+               </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {!isElite && (
         <div className="hypr-card p-12 border-brand-accent/20 bg-brand-accent/[0.02] relative overflow-hidden group shadow-2xl">

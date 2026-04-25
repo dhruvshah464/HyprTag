@@ -42,6 +42,7 @@ import HowItWorks from './pages/HowItWorks';
 import Upgrade from './pages/Upgrade';
 import NeuralGuard from './pages/NeuralGuard';
 import EliteOnboarding from './pages/EliteOnboarding';
+import Earn from './pages/Earn';
 
 const NavItem = ({ to, icon: Icon, label, onClick }: { to: string, icon: any, label: string, onClick?: () => void }) => (
   <NavLink 
@@ -89,9 +90,9 @@ const UserLayout = ({ children }: { children: React.ReactNode }) => {
         <div className="flex items-center justify-between mb-12 overflow-hidden">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-slate-950 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-slate-900/10 overflow-hidden">
-              <img src="/logo.png" alt="Logo" className="w-full h-full object-cover scale-150" />
+               <Zap className="w-6 h-6 text-brand-accent fill-current" />
             </div>
-            {!isCollapsed && <span className="font-display font-bold text-2xl tracking-tighter leading-none whitespace-nowrap">hypr<span className="text-brand-accent">tags</span></span>}
+            {!isCollapsed && <span className="font-display font-bold text-2xl tracking-tighter leading-none whitespace-nowrap">Viral<span className="text-brand-accent">Flow</span></span>}
           </div>
           <button 
             onClick={() => setIsCollapsed(!isCollapsed)} 
@@ -110,37 +111,29 @@ const UserLayout = ({ children }: { children: React.ReactNode }) => {
           {!isElite && !isCollapsed && (
              <div className="mx-2 mb-8 p-6 rounded-3xl bg-brand-accent/[0.03] border border-brand-accent/10 relative overflow-hidden group hover:bg-brand-accent/[0.05] transition-all cursor-pointer" onClick={() => window.location.href='/upgrade'}>
                 <div className="absolute -top-12 -right-12 w-24 h-24 bg-brand-accent/5 rounded-full blur-2xl group-hover:bg-brand-accent/10 transition-all" />
-                <h4 className="text-[10px] font-bold text-brand-accent uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
+                <h4 className="text-[10px] font-bold text-brand-accent uppercase tracking-widest mb-2 flex items-center gap-2">
                    <Zap className="w-3 h-3 fill-current" />
-                   Unlock Elite
+                   Go Pro
                 </h4>
                 <p className="text-[11px] text-slate-400 leading-relaxed font-light italic whitespace-normal">
-                   "Deploy proprietary neural growth protocols."
+                   "Get more reach with elite viral tools."
                 </p>
                 <div className="mt-4 flex items-center gap-2 text-[10px] font-bold text-slate-700 group-hover:gap-3 transition-all uppercase tracking-widest">
-                   Initialize <ChevronRight className="w-3 h-3" />
+                   Upgrade Now <ChevronRight className="w-3 h-3" />
                 </div>
              </div>
           )}
-          <p className={cn("text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 ml-4 transition-opacity", isCollapsed ? "opacity-0" : "opacity-100")}>
-            {!isCollapsed && "Growth Suite"}
+          <p className={cn("text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 ml-4 transition-opacity", isCollapsed ? "opacity-0" : "opacity-100")}>
+            {!isCollapsed && "Viral Suite"}
           </p>
-          <NavItem to="/" icon={LayoutIcon} label={isCollapsed ? "" : "Command Center"} onClick={closeMobile} />
-          <NavItem to="/generator" icon={Hash} label={isCollapsed ? "" : "Neural Generator"} onClick={closeMobile} />
-          <NavItem to="/video-generator" icon={Layers} label={isCollapsed ? "" : "Neural Reels"} onClick={closeMobile} />
-          <NavItem to="/competitors" icon={Target} label={isCollapsed ? "" : "Competitor Intel"} onClick={closeMobile} />
-          <NavItem to="/planner" icon={Layers} label={isCollapsed ? "" : "Content Planner"} onClick={closeMobile} />
-          <NavItem to="/neural-guard" icon={ShieldCheck} label={isCollapsed ? "" : "Neural Guard"} onClick={closeMobile} />
-          
-          <div className="mt-8 mb-4 h-px bg-slate-100 mx-4" />
-          
-          <p className={cn("text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 ml-4 transition-opacity", isCollapsed ? "opacity-0" : "opacity-100")}>
-            {!isCollapsed && "Automation"}
-          </p>
-          <NavItem to="/schedule" icon={Calendar} label={isCollapsed ? "" : "Post Calendar"} onClick={closeMobile} />
-          <NavItem to="/automations" icon={Zap} label={isCollapsed ? "" : "Workflow Automations"} onClick={closeMobile} />
-          <NavItem to="/connections" icon={Globe} label={isCollapsed ? "" : "Social Hub"} onClick={closeMobile} />
-          <NavItem to="/analytics" icon={BarChart3} label={isCollapsed ? "" : "Performance"} onClick={closeMobile} />
+          <NavItem to="/dashboard" icon={LayoutIcon} label={isCollapsed ? "" : "Dashboard"} onClick={closeMobile} />
+          <NavItem to="/generator" icon={Hash} label={isCollapsed ? "" : "Viral Generator"} onClick={closeMobile} />
+          <NavItem to="/video-generator" icon={Layers} label={isCollapsed ? "" : "AI Reels"} onClick={closeMobile} />
+          <NavItem to="/planner" icon={Calendar} label={isCollapsed ? "" : "Planner"} onClick={closeMobile} />
+          <NavItem to="/earn" icon={Sparkles} label={isCollapsed ? "" : "Earn"} onClick={closeMobile} />
+          <NavItem to="/connections" icon={Globe} label={isCollapsed ? "" : "Connections"} onClick={closeMobile} />
+          <NavItem to="/analytics" icon={BarChart3} label={isCollapsed ? "" : "Analytics"} onClick={closeMobile} />
+          <NavItem to="/settings" icon={Settings} label={isCollapsed ? "" : "Settings"} onClick={closeMobile} />
 
           <div className="mt-8 mb-4 h-px bg-slate-100 mx-4" />
           <NavItem to="/how-it-works" icon={Cpu} label={isCollapsed ? "" : "Protocol Guide"} onClick={closeMobile} />
@@ -151,12 +144,8 @@ const UserLayout = ({ children }: { children: React.ReactNode }) => {
             <div className="mb-6 p-4 rounded-2xl bg-slate-50 border border-slate-100 whitespace-nowrap">
                <div className="flex items-center gap-3 mb-3">
                   <div className="w-2 h-2 rounded-full bg-brand-accent animate-pulse" />
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active System</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">System Online</span>
                </div>
-               <p className="text-[11px] text-slate-500 leading-relaxed font-mono">
-                  API Version: v3.2.1-f <br />
-                  Latency: 24ms
-               </p>
             </div>
           )}
           <button 
@@ -184,10 +173,10 @@ const UserLayout = ({ children }: { children: React.ReactNode }) => {
           <div className="flex items-center gap-6">
              <div className="hidden lg:flex flex-col items-end">
                <div className="flex items-center gap-2 mb-0.5">
-                  <span className={cn("text-xs font-bold", isElite ? "text-brand-accent" : "text-slate-400")}>{isElite ? "Elite Access" : "Basic System"}</span>
+                  <span className={cn("text-xs font-bold", isElite ? "text-brand-accent" : "text-slate-400")}>{isElite ? "Pro Plan" : "Free Plan"}</span>
                   <div className={cn("w-1.5 h-1.5 rounded-full animate-pulse", isElite ? "bg-brand-accent" : "bg-slate-200")} />
                </div>
-               <span className="text-[10px] font-mono text-slate-300 uppercase tracking-tighter">{isElite ? "Cluster: AS-SE1-42-ELITE" : "Cluster: PENDING-PROVISIONAL"}</span>
+               <span className="text-[10px] font-mono text-slate-300 uppercase tracking-tighter">Active Session</span>
              </div>
              <div className="h-8 w-px bg-slate-100" />
              <div className="flex items-center gap-3">
@@ -233,8 +222,8 @@ export default function App() {
             </div>
          </div>
          <div className="space-y-2 text-center">
-            <h2 className="text-xl font-display font-bold italic tracking-tighter text-slate-900">Initializing Protocols</h2>
-            <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.3em]">Connecting to Neural Node...</p>
+            <h2 className="text-xl font-display font-bold italic tracking-tighter text-slate-900">Welcome to ViralFlow</h2>
+            <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Your Viral Journey Awaits...</p>
          </div>
       </div>
     );
@@ -265,6 +254,7 @@ export default function App() {
                   <Route path="/automations" element={<Automations />} />
                   <Route path="/connections" element={<Connections />} />
                   <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/earn" element={<Earn />} />
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/upgrade" element={<Upgrade />} />
                   <Route path="/neural-guard" element={<NeuralGuard />} />

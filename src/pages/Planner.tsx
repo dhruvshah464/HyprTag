@@ -2,25 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Plus, 
-  MoreVertical, 
   Calendar as CalendarIcon, 
-  Hash, 
-  MessageCircle,
   Layout,
-  GripVertical,
   CheckCircle2,
   Clock,
   Instagram,
-  Facebook,
   Twitter,
   Linkedin,
   ArrowRight,
   X,
   Trash2,
-  Zap
+  Zap,
+  Sparkles,
+  Loader2,
+  Rocket,
+  Search,
+  Youtube,
+  Send,
+  MoreHorizontal
 } from 'lucide-react';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { cn } from '../lib/utils';
-import { db, auth, handleFirestoreError } from '../lib/firebase';
+import { db, handleFirestoreError } from '../lib/firebase';
 import { useAuth } from '../lib/auth';
 import { collection, query, where, onSnapshot, updateDoc, doc, addDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { EliteUpgradeModal } from '../components/EliteUpgradeModal';
@@ -31,13 +34,21 @@ interface Task {
   status: 'idea' | 'draft' | 'scheduled' | 'published';
   platforms: string[];
   createdAt: any;
+  notes?: string;
 }
 
-const COLUMNS = [
-  { id: 'idea', label: 'Incubating', color: 'bg-slate-50' },
-  { id: 'draft', label: 'Designing', color: 'bg-slate-50/80' },
-  { id: 'scheduled', label: 'Pipeline', color: 'bg-slate-50/60' },
-  { id: 'published', label: 'Live', color: 'bg-brand-accent/[0.05]' }
+const COLUMNS: { id: Task['status']; label: string; color: string }[] = [
+  { id: 'idea', label: 'Ideas', color: 'bg-slate-50' },
+  { id: 'draft', label: 'Drafts', color: 'bg-slate-50/80' },
+  { id: 'scheduled', label: 'Scheduled', color: 'bg-slate-50/60' },
+  { id: 'published', label: 'Posted', color: 'bg-brand-accent/[0.05]' }
+];
+
+const PLANNER_PLATFORMS = [
+  { id: 'Instagram', icon: Instagram, color: 'text-pink-500', bg: 'bg-pink-500/10' },
+  { id: 'TikTok', icon: Send, color: 'text-slate-900', bg: 'bg-slate-900/10' },
+  { id: 'YouTube', icon: Youtube, color: 'text-red-600', bg: 'bg-red-600/10' },
+  { id: 'Twitter', icon: Twitter, color: 'text-sky-400', bg: 'bg-sky-400/10' }
 ];
 
 export default function Planner() {
@@ -47,7 +58,10 @@ export default function Planner() {
   const [isAdding, setIsAdding] = useState(false);
   const [targetStatus, setTargetStatus] = useState<Task['status']>('idea');
   const [newContent, setNewContent] = useState('');
+  const [newNotes, setNewNotes] = useState('');
+  const [selectedTaskPlatforms, setSelectedTaskPlatforms] = useState<string[]>(['Instagram']);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -65,36 +79,38 @@ export default function Planner() {
     return () => unsubscribe();
   }, [user?.uid]);
 
+  const onDragEnd = async (result: any) => {
+    const { destination, source, draggableId } = result;
+    if (!destination) return;
+    if (destination.droppableId === source.droppableId && destination.index === source.index) return;
+
+    const newStatus = destination.droppableId as Task['status'];
+    try {
+      await updateDoc(doc(db, "scheduledPosts", draggableId), { status: newStatus });
+    } catch (e) {
+      handleFirestoreError(e, 'update', 'scheduledPosts');
+    }
+  };
+
   const createTask = async () => {
     if (!user || !newContent) return;
     
-    if (!isElite && tasks.length >= 5) {
-      setUpgradeModalOpen(true);
-      return;
-    }
-
     try {
       await addDoc(collection(db, "scheduledPosts"), {
         userId: user.uid,
         content: newContent,
+        notes: newNotes,
         status: targetStatus,
-        hashtags: [],
-        platforms: ['Instagram'],
+        platforms: selectedTaskPlatforms,
         scheduledTime: targetStatus === 'scheduled' ? new Date().toISOString() : null,
         createdAt: serverTimestamp()
       });
       setNewContent('');
+      setNewNotes('');
+      setSelectedTaskPlatforms(['Instagram']);
       setIsAdding(false);
     } catch (e) {
       handleFirestoreError(e, 'create', 'scheduledPosts');
-    }
-  };
-
-  const moveTask = async (taskId: string, newStatus: Task['status']) => {
-    try {
-      await updateDoc(doc(db, "scheduledPosts", taskId), { status: newStatus });
-    } catch (e) {
-      handleFirestoreError(e, 'update', 'scheduledPosts');
     }
   };
 
@@ -107,23 +123,117 @@ export default function Planner() {
   };
 
   return (
-    <div className="space-y-12 h-screen flex flex-col pb-10 max-w-[1400px] mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-end gap-6 text-left px-4">
-        <div className="space-y-4 text-left">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-             <Layout className="w-3 h-3 text-brand-accent" />
-             Strategic Pipeline
+    <div className="space-y-8 h-screen flex flex-col pb-10 max-w-[1400px] mx-auto overflow-hidden">
+      <div className="flex flex-col md:flex-row justify-between items-end gap-6 text-left px-6">
+        <div className="space-y-2 text-left">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-accent/10 border border-brand-accent/20 text-[10px] font-bold uppercase tracking-widest text-brand-accent">
+             <CalendarIcon className="w-3 h-3" />
+             Content Planner
           </div>
-          <h1 className="font-display font-bold text-4xl italic lowercase tracking-tighter text-slate-900">Content<span className="text-brand-accent">Engine</span></h1>
-          <p className="text-slate-500 max-w-md">Orchestrate your high-velocity creator presence with neural workflow visualization.</p>
+          <h1 className="font-display font-bold text-4xl italic tracking-tighter text-slate-900">Reach<span className="text-brand-accent">Rocket</span></h1>
+          <p className="text-slate-500 max-w-md">Schedule your posts and watch your reach skyrocket.</p>
         </div>
         <button 
           onClick={() => { setTargetStatus('idea'); setIsAdding(true); }}
-          className="btn-hypr-primary h-12 px-8 text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-xl shadow-brand-accent/10"
+          className="h-14 px-8 bg-brand-accent text-white rounded-2xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 shadow-xl shadow-brand-accent/20 hover:scale-[1.02] transition-all"
         >
-          <Plus className="w-4 h-4" /> New Sequence
+          <Plus className="w-4 h-4" /> New Post
         </button>
       </div>
+
+      <DragDropContext onDragEnd={onDragEnd}>
+        <div className="flex gap-6 overflow-x-auto pb-10 px-6 flex-grow scrollbar-hide">
+          {COLUMNS.map((col) => (
+            <div key={col.id} className="flex flex-col gap-6 min-w-[320px] w-[320px]">
+              <div className="flex items-center justify-between px-2">
+                  <div className="flex items-center gap-3">
+                    <h3 className="font-bold text-xs uppercase tracking-widest text-slate-400">{col.label}</h3>
+                    <span className="text-[10px] bg-white border border-slate-100 px-2.5 py-1 rounded-lg text-slate-500 font-bold">
+                      {tasks.filter(t => t.status === col.id).length}
+                    </span>
+                 </div>
+              </div>
+
+              <Droppable droppableId={col.id}>
+                {(provided, snapshot) => (
+                  <div 
+                    {...provided.droppableProps}
+                    ref={provided.innerRef}
+                    className={cn(
+                      "flex-grow rounded-[2.5rem] border-2 border-slate-100/50 p-4 transition-all duration-300 min-h-[400px]",
+                      col.color,
+                      snapshot.isDraggingOver && "border-brand-accent/20 bg-brand-accent/[0.02]"
+                    )}
+                  >
+                    <div className="space-y-4">
+                      {tasks.filter(t => t.status === col.id).map((task, index) => (
+                        // @ts-expect-error key prop check
+                        <Draggable key={task.id} draggableId={task.id} index={index}>
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              className={cn(
+                                "p-6 bg-white border border-slate-100 rounded-3xl shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all group relative",
+                                snapshot.isDragging && "shadow-2xl ring-2 ring-brand-accent"
+                              )}
+                            >
+                               <div className="flex justify-between items-start mb-4">
+                                  <div className="flex gap-1.5">
+                                     {(task.platforms || []).map(p => {
+                                       const platform = PLANNER_PLATFORMS.find(cp => cp.id === p);
+                                       if (!platform) return null;
+                                       return (
+                                         <div key={p} className={cn("p-1.5 rounded-lg", platform.bg)}>
+                                           <platform.icon className={cn("w-3.5 h-3.5", platform.color)} />
+                                         </div>
+                                       );
+                                     })}
+                                  </div>
+                                  <button 
+                                     onClick={() => setDeletingTaskId(task.id)}
+                                     className="p-1 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                               </div>
+                               
+                               <div className="space-y-4">
+                                  <p className="text-sm text-slate-800 font-light leading-relaxed">
+                                    {task.content}
+                                  </p>
+                                  {task.notes && (
+                                    <div className="p-3 bg-slate-50 rounded-xl">
+                                      <p className="text-[10px] text-slate-500 italic line-clamp-2">{task.notes}</p>
+                                    </div>
+                                  )}
+                               </div>
+
+                               <div className="mt-6 pt-4 border-t border-slate-50 flex items-center justify-between">
+                                  <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                                     <Clock className="w-3.5 h-3.5" />
+                                     {task.status === 'scheduled' ? 'Today, 6:00 PM' : 'Unscheduled'}
+                                  </div>
+                                  {task.status === 'scheduled' && (
+                                    <div className="flex items-center gap-1 text-[8px] font-bold text-brand-accent uppercase tracking-widest animate-pulse">
+                                      <Zap className="w-2 h-2" /> Auto-Post Live
+                                    </div>
+                                  )}
+                               </div>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </div>
+                  </div>
+                )}
+              </Droppable>
+            </div>
+          ))}
+        </div>
+      </DragDropContext>
 
       <AnimatePresence>
         {isAdding && (
@@ -132,38 +242,75 @@ export default function Planner() {
                initial={{ opacity: 0, scale: 0.9, y: 20 }} 
                animate={{ opacity: 1, scale: 1, y: 0 }} 
                exit={{ opacity: 0, scale: 0.9, y: 20 }} 
-               className="hypr-card max-w-xl w-full border-slate-200 bg-white p-12 shadow-2xl"
+               className="bg-white rounded-[3rem] max-w-xl w-full p-10 shadow-2xl relative border border-slate-100"
              >
-                <div className="flex justify-between items-center mb-12">
-                   <div className="space-y-1 text-left">
-                      <h3 className="font-display font-bold text-4xl tracking-tighter italic text-slate-900">Initiate <span className="text-brand-accent">Concept</span></h3>
-                      <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.3em]">Status: {targetStatus}</p>
+                <div className="flex justify-between items-center mb-10">
+                   <div className="space-y-1">
+                      <h3 className="text-3xl font-display font-bold italic text-slate-900">New <span className="text-brand-accent">Post</span></h3>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Target Status: {targetStatus}</p>
                    </div>
-                   <button onClick={() => setIsAdding(false)} className="p-3 bg-slate-50 rounded-2xl text-slate-300 hover:text-slate-900 hover:bg-slate-100 transition-all">
-                      <X className="w-6 h-6" />
+                   <button onClick={() => setIsAdding(false)} className="p-3 hover:bg-slate-50 rounded-2xl transition-all">
+                      <X className="w-6 h-6 text-slate-400" />
                    </button>
                 </div>
                 
-                <div className="space-y-10">
-                  <div className="space-y-4 text-left">
-                    <label className="hypr-label ml-1 text-slate-400">Context Definition</label>
+                <div className="space-y-8">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Caption / Content</label>
                     <textarea 
                       autoFocus
                       value={newContent}
                       onChange={(e) => setNewContent(e.target.value)}
-                      placeholder="Neural signal or content draft..."
-                      className="hypr-input w-full min-h-[160px] text-xl font-light py-6 bg-slate-50 border-slate-200 focus:bg-white text-slate-900"
+                      placeholder="What's the message?"
+                      className="w-full min-h-[120px] p-6 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:border-brand-accent transition-all text-lg font-light outline-none resize-none"
                     />
                   </div>
+
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Private Notes</label>
+                    <textarea 
+                      value={newNotes}
+                      onChange={(e) => setNewNotes(e.target.value)}
+                      placeholder="Add research or reminders..."
+                      className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:border-brand-accent transition-all text-sm font-light outline-none h-20 resize-none"
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Platforms</label>
+                    <div className="grid grid-cols-4 gap-3">
+                      {PLANNER_PLATFORMS.map(p => (
+                        <button 
+                          key={p.id}
+                          onClick={() => {
+                            setSelectedTaskPlatforms(prev => 
+                              prev.includes(p.id) ? prev.filter(id => id !== p.id) : [...prev, p.id]
+                            );
+                          }}
+                          className={cn(
+                            "flex flex-col items-center justify-center p-4 rounded-2xl border transition-all gap-2",
+                            selectedTaskPlatforms.includes(p.id) 
+                              ? "bg-white border-brand-accent shadow-md shadow-brand-accent/5" 
+                              : "bg-slate-50 border-slate-100 opacity-60 grayscale hover:grayscale-0"
+                          )}
+                        >
+                           <p.icon className={cn("w-5 h-5", selectedTaskPlatforms.includes(p.id) ? p.color : "text-slate-400")} />
+                           <span className={cn("text-[9px] font-bold uppercase tracking-widest", selectedTaskPlatforms.includes(p.id) ? "text-slate-900" : "text-slate-400")}>
+                             {p.id}
+                           </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   
-                  <div className="grid grid-cols-2 gap-6 pt-4">
-                    <button onClick={() => setIsAdding(false)} className="btn-hypr-secondary h-16 uppercase tracking-[0.2em] text-[10px] font-bold">Discard</button>
+                  <div className="grid grid-cols-2 gap-4 pt-4">
+                    <button onClick={() => setIsAdding(false)} className="h-16 rounded-2xl bg-slate-50 text-slate-400 font-bold uppercase tracking-widest text-[10px]">Discard</button>
                     <button 
                       onClick={createTask} 
                       disabled={!newContent} 
-                      className="btn-hypr-primary h-16 uppercase tracking-[0.2em] text-[10px] font-bold"
+                      className="h-16 rounded-2xl bg-brand-accent text-white font-bold uppercase tracking-widest text-[10px] shadow-xl shadow-brand-accent/20"
                     >
-                      Establish Link
+                      Save to Planner
                     </button>
                   </div>
                 </div>
@@ -172,110 +319,39 @@ export default function Planner() {
         )}
       </AnimatePresence>
 
-      <div className="flex gap-8 overflow-x-auto pb-10 -mx-4 px-4 flex-grow scrollbar-hide">
-        {COLUMNS.map((col) => (
-          <div key={col.id} className="flex flex-col gap-8 min-w-[340px] w-[340px]">
-            <div className="flex items-center justify-between px-2">
-                <div className="flex items-center gap-4">
-                  <h3 className="font-bold text-xs uppercase tracking-[0.25em] text-slate-400">{col.label}</h3>
-                  <span className="text-[10px] bg-white border border-slate-100 px-2.5 py-1 rounded-lg text-slate-500 font-mono font-bold tracking-tighter">
-                    {tasks.filter(t => t.status === col.id).length.toString().padStart(2, '0')}
-                  </span>
-               </div>
-               <button 
-                 onClick={() => { setTargetStatus(col.id as any); setIsAdding(true); }}
-                 className="w-8 h-8 flex items-center justify-center bg-white hover:bg-slate-50 rounded-xl text-slate-300 hover:text-slate-900 transition-all border border-slate-100 shadow-sm"
-               >
-                 <Plus className="w-4 h-4" />
-               </button>
-            </div>
-
-            <div className={cn("flex-grow rounded-[2.5rem] border border-slate-100 space-y-6 p-5 transition-all duration-700 hover:bg-white flex flex-col shadow-sm", col.color)}>
-               <div className="space-y-5 flex-grow overflow-y-auto pr-1 scrollbar-hide">
-                <AnimatePresence mode="popLayout">
-                  {tasks.filter(t => t.status === col.id).sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).map((task) => (
-                    <motion.div
-                      key={task.id}
-                      layout
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      className="hypr-card p-6 border-white/5 hover:border-white/10 hover:bg-white/[0.02] active:scale-[0.98] transition-all group relative cursor-default"
-                    >
-                       <div className="flex justify-between items-start mb-6">
-                          <div className="flex gap-2">
-                             {(task.platforms || ['Instagram']).map(p => (
-                               <div key={p} className="p-1.5 bg-white/5 rounded-lg border border-white/5">
-                                 {p === 'Instagram' && <Instagram className="w-3.5 h-3.5 text-pink-500/60" />}
-                                 {p === 'Twitter' && <Twitter className="w-3.5 h-3.5 text-sky-400/60" />}
-                                 {p === 'Linkedin' && <Linkedin className="w-3.5 h-3.5 text-blue-600/60" />}
-                               </div>
-                             ))}
-                          </div>
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                             <button 
-                               onClick={() => deleteTask(task.id)}
-                               className="p-1.5 hover:bg-red-500/10 rounded-lg text-white/10 hover:text-red-500/60 transition-all"
-                             >
-                               <Trash2 className="w-3.5 h-3.5" />
-                             </button>
-                          </div>
-                       </div>
-                       
-                       <p className="text-sm text-white/50 line-clamp-4 mb-8 font-light leading-[1.7] italic">
-                         {task.content || 'Awaiting Strategic Input...'}
-                       </p>
-                       
-                       <div className="flex items-center justify-between pt-5 border-t border-white/5">
-                          <div className="flex -space-x-2">
-                             {[1, 2].map(i => (
-                               <div key={i} className="w-7 h-7 rounded-full border-2 border-[#09090b] bg-white/5 overflow-hidden">
-                                  <img src={`https://picsum.photos/seed/${task.id + i}/30/30`} className="w-full h-full object-cover grayscale opacity-30" alt="Avatar" referrerPolicy="no-referrer" />
-                               </div>
-                             ))}
-                             <div className="w-7 h-7 rounded-full border-2 border-[#09090b] bg-brand-accent/10 flex items-center justify-center">
-                                <span className="text-[8px] font-bold text-brand-accent">+1</span>
-                             </div>
-                          </div>
-                          
-                          <div className="flex gap-2">
-                             {col.id !== 'published' && (
-                               <button 
-                                 onClick={() => {
-                                   const statuses: Task['status'][] = ['idea', 'draft', 'scheduled', 'published'];
-                                   const currentIdx = statuses.indexOf(task.status);
-                                   if (currentIdx < statuses.length - 1) moveTask(task.id, statuses[currentIdx + 1]);
-                                 }}
-                                 className="h-9 px-4 rounded-full bg-white/5 border border-white/5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-white/20 hover:text-white hover:bg-brand-accent/20 hover:border-brand-accent/30 transition-all group/next"
-                               >
-                                  <span>Advance</span>
-                                  <ArrowRight className="w-3 h-3 group-hover/next:translate-x-0.5 transition-transform" />
-                               </button>
-                             )}
-                          </div>
-                       </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-                
-                {tasks.filter(t => t.status === col.id).length === 0 && (
-                  <motion.div 
-                    initial={{ opacity: 0 }} 
-                    animate={{ opacity: 1 }}
-                    onClick={() => { setTargetStatus(col.id as any); setIsAdding(true); }}
-                    className="h-44 border-2 border-dashed border-white/[0.02] rounded-[2rem] flex flex-col items-center justify-center gap-3 group cursor-pointer hover:border-brand-accent/20 hover:bg-brand-accent/[0.01] transition-all"
-                  >
-                     <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/5 text-white/10 group-hover:text-brand-accent/40 transition-all group-hover:scale-110">
-                       <Zap className="w-5 h-5" />
-                     </div>
-                     <p className="text-[10px] font-bold text-white/10 uppercase tracking-[0.3em] group-hover:text-brand-accent/40 transition-colors">Capture Insight</p>
-                  </motion.div>
-                )}
-               </div>
-            </div>
+      <AnimatePresence>
+        {deletingTaskId && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xl">
+             <motion.div 
+               initial={{ opacity: 0, scale: 0.9, y: 20 }} 
+               animate={{ opacity: 1, scale: 1, y: 0 }} 
+               exit={{ opacity: 0, scale: 0.9, y: 20 }} 
+               className="bg-white rounded-[3rem] max-w-sm w-full p-10 text-center space-y-8"
+             >
+                <div className="w-16 h-16 rounded-3xl bg-red-50 flex items-center justify-center mx-auto text-red-500">
+                   <Trash2 className="w-7 h-7" />
+                </div>
+                <div className="space-y-2">
+                   <h3 className="text-2xl font-display font-bold italic tracking-tighter text-slate-900">Delete Post?</h3>
+                   <p className="text-slate-500 text-sm font-light">This will permanently remove this post from your planner.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                   <button onClick={() => setDeletingTaskId(null)} className="h-14 rounded-2xl bg-slate-50 text-slate-400 font-bold uppercase text-[10px] tracking-widest">Cancel</button>
+                   <button 
+                     onClick={() => {
+                       deleteTask(deletingTaskId);
+                       setDeletingTaskId(null);
+                     }} 
+                     className="h-14 rounded-2xl bg-red-500 text-white font-bold uppercase text-[10px] tracking-widest shadow-lg shadow-red-500/20"
+                   >
+                     Confirm Delete
+                   </button>
+                </div>
+             </motion.div>
           </div>
-        ))}
-      </div>
+        )}
+      </AnimatePresence>
+
       <EliteUpgradeModal isOpen={upgradeModalOpen} onClose={() => setUpgradeModalOpen(false)} />
     </div>
   );

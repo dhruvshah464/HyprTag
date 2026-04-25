@@ -11,7 +11,9 @@ import {
   Area,
   PieChart,
   Pie,
-  Cell
+  Cell,
+  LineChart,
+  Line
 } from 'recharts';
 import { 
   TrendingUp, 
@@ -106,6 +108,16 @@ export default function Analytics() {
     { name: 'Comments', value: stats.reduce((acc, curr) => acc + (curr.comments || 0), 0) }
   ];
 
+  // Mock velocity data for visualization
+  const velocityData = stats.slice(-14).map((s, i) => {
+    const historical = 40 + (Math.random() * 40);
+    return {
+      name: s.createdAt ? format(s.createdAt.toDate(), 'MM/dd') : `T-${14-i}`,
+      velocity: Math.round(historical),
+      projected: Math.round(historical * (1 + (i * 0.05)))
+    };
+  });
+
   return (
     <div className="space-y-16 pb-20 max-w-6xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-end gap-6">
@@ -143,30 +155,36 @@ export default function Analytics() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         <div className="hypr-card p-10 lg:col-span-2 relative overflow-hidden bg-white border-slate-200">
           <div className="absolute top-0 right-0 p-8 opacity-[0.03]">
-             <BarChart3 className="w-32 h-32 text-brand-accent" />
+             <TrendingUp className="w-32 h-32 text-brand-accent" />
           </div>
-          <h5 className="font-bold mb-10 flex items-center gap-3 text-xs uppercase tracking-[0.3em] text-slate-400">
-            <Layers className="w-4 h-4 text-brand-accent" />
-            Reach Trajectory Hub
-          </h5>
-          <div className="h-[360px] w-full min-h-[300px]">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-              <AreaChart data={reachData}>
-                <defs>
-                  <linearGradient id="colorReach" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
+          <div className="flex justify-between items-center mb-10">
+            <h5 className="font-bold flex items-center gap-3 text-xs uppercase tracking-[0.3em] text-slate-400">
+              <Zap className="w-4 h-4 text-brand-accent" />
+              Viral Velocity Trajectory
+            </h5>
+            <div className="flex gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-slate-200" />
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Historical</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-brand-accent" />
+                <span className="text-[10px] font-bold text-brand-accent uppercase">Projected</span>
+              </div>
+            </div>
+          </div>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={velocityData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} axisLine={false} tickLine={false} tickMargin={10} />
-                <YAxis stroke="#94a3b8" fontSize={10} axisLine={false} tickLine={false} tickMargin={10} />
+                <YAxis stroke="#94a3b8" fontSize={10} axisLine={false} tickLine={false} tickMargin={10} domain={[0, 100]} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px' }} 
-                  itemStyle={{ color: '#2563eb', fontSize: '12px' }}
+                  contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '12px' }}
                 />
-                <Area type="monotone" dataKey="reach" stroke="#2563eb" fillOpacity={1} fill="url(#colorReach)" strokeWidth={3} />
-              </AreaChart>
+                <Line type="monotone" dataKey="velocity" stroke="#cbd5e1" strokeWidth={2} dot={false} strokeDasharray="5 5" />
+                <Line type="monotone" dataKey="projected" stroke="#2563eb" strokeWidth={3} dot={{ r: 4, fill: '#2563eb' }} activeDot={{ r: 6 }} />
+              </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
