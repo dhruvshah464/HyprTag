@@ -30,6 +30,7 @@ import { db, auth, handleFirestoreError } from '../lib/firebase';
 import { useAuth } from '../lib/auth';
 import { collection, query, where, orderBy, onSnapshot, limit, Timestamp, getCountFromServer } from 'firebase/firestore';
 import { format } from 'date-fns';
+import { EliteUpgradeModal } from '../components/EliteUpgradeModal';
 import { 
   AreaChart, 
   Area, 
@@ -226,67 +227,13 @@ export default function Dashboard() {
              </motion.div>
           </motion.div>
         )}
-
-        {showUpgradeModal && (
-          <motion.div 
-            key="upgrade-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[70] bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-6"
-          >
-             <motion.div 
-               initial={{ scale: 0.9, opacity: 0 }}
-               animate={{ scale: 1, opacity: 1 }}
-               className="bg-slate-900 rounded-[3rem] p-12 max-w-xl w-full shadow-2xl relative border border-brand-accent/30 overflow-hidden"
-             >
-                <button 
-                   onClick={() => setShowUpgradeModal(false)}
-                   className="absolute top-8 right-8 p-2 text-slate-600 hover:text-white transition-all hover:scale-110"
-                   title="Dismiss Upgrade"
-                >
-                   <X className="w-6 h-6" />
-                </button>
-                <div className="absolute top-0 right-0 w-64 h-64 bg-brand-accent/20 rounded-full blur-[100px] -z-10" />
-                <div className="space-y-10 relative z-10 text-center">
-                   <div className="w-20 h-20 bg-brand-accent rounded-3xl flex items-center justify-center mx-auto shadow-2xl rotate-3">
-                      <Zap className="w-10 h-10 text-white fill-current" />
-                   </div>
-                   <div className="space-y-4">
-                      <h3 className="text-4xl font-display font-bold italic tracking-tighter text-white">Unlock Elite <span className="text-brand-accent">Protocols.</span></h3>
-                      <p className="text-slate-400 text-sm leading-relaxed">Basic initialization complete. To access multi-platform viral scoring and neural protection, your creator ID must be upgraded to <span className="text-white font-bold italic">ELITE status</span>.</p>
-                   </div>
-
-                   <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 bg-slate-800/50 rounded-2xl border border-slate-700 text-left">
-                         <p className="text-[10px] font-bold text-brand-accent uppercase mb-1 tracking-widest">Unlimited</p>
-                         <p className="text-xs text-white font-medium">Neural Tags</p>
-                      </div>
-                      <div className="p-4 bg-slate-800/50 rounded-2xl border border-slate-700 text-left">
-                         <p className="text-[10px] font-bold text-brand-accent uppercase mb-1 tracking-widest">Proactive</p>
-                         <p className="text-xs text-white font-medium">Competitor Intel</p>
-                      </div>
-                   </div>
-
-                   <div className="pt-4 space-y-4">
-                      <button 
-                        onClick={() => window.location.href='/upgrade'}
-                        className="btn-hypr-primary w-full h-16 text-sm tracking-widest uppercase flex items-center justify-center gap-4 group"
-                      >
-                         Initialize Upgrade Packet <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                      </button>
-                      <button 
-                        onClick={() => setShowUpgradeModal(false)}
-                        className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] hover:text-white transition-colors"
-                      >
-                         Deploy with Base Credentials
-                      </button>
-                   </div>
-                </div>
-             </motion.div>
-          </motion.div>
-        )}
       </AnimatePresence>
+      <EliteUpgradeModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)}
+        title="Tactical Limit Reached"
+        description="Your creator ID has reached the maximum base bandwidth. Upgrade to Elite to unlock unlimited strategic signal extraction and viral velocity scoring."
+      />
 
       {/* Error Alert */}
       {localError && (

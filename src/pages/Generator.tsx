@@ -21,6 +21,8 @@ import { generateHashtags, AnalysisResponse } from '../lib/gemini';
 import { db, auth, handleFirestoreError } from '../lib/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getCountFromServer } from 'firebase/firestore';
 import { useAuth } from '../lib/auth';
+import { useNavigate } from 'react-router-dom';
+import { EliteUpgradeModal } from '../components/EliteUpgradeModal';
 
 export default function Generator() {
   const { isElite, user } = useAuth();
@@ -32,7 +34,9 @@ export default function Generator() {
   const [scheduling, setScheduling] = useState(false);
   const [scheduleDate, setScheduleDate] = useState('');
   const [usageCount, setUsageCount] = useState<number | null>(null);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     async function checkUsage() {
@@ -61,7 +65,7 @@ export default function Generator() {
     if (!content && !image) return;
     
     if (!isElite && usageCount !== null && usageCount >= 3) {
-      alert("Neural limit reached. Upgrade to Elite for unlimited strategic extraction.");
+      setUpgradeModalOpen(true);
       return;
     }
 
@@ -358,6 +362,7 @@ export default function Generator() {
           </div>
         )}
       </AnimatePresence>
+      <EliteUpgradeModal isOpen={upgradeModalOpen} onClose={() => setUpgradeModalOpen(false)} />
     </div>
   );
 }

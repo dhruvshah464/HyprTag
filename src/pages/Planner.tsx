@@ -23,6 +23,7 @@ import { cn } from '../lib/utils';
 import { db, auth, handleFirestoreError } from '../lib/firebase';
 import { useAuth } from '../lib/auth';
 import { collection, query, where, onSnapshot, updateDoc, doc, addDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { EliteUpgradeModal } from '../components/EliteUpgradeModal';
 
 interface Task {
   id: string;
@@ -40,12 +41,13 @@ const COLUMNS = [
 ];
 
 export default function Planner() {
-  const { user } = useAuth();
+  const { user, isElite } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [targetStatus, setTargetStatus] = useState<Task['status']>('idea');
   const [newContent, setNewContent] = useState('');
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -65,6 +67,12 @@ export default function Planner() {
 
   const createTask = async () => {
     if (!user || !newContent) return;
+    
+    if (!isElite && tasks.length >= 5) {
+      setUpgradeModalOpen(true);
+      return;
+    }
+
     try {
       await addDoc(collection(db, "scheduledPosts"), {
         userId: user.uid,
@@ -268,6 +276,7 @@ export default function Planner() {
           </div>
         ))}
       </div>
+      <EliteUpgradeModal isOpen={upgradeModalOpen} onClose={() => setUpgradeModalOpen(false)} />
     </div>
   );
 }

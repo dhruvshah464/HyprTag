@@ -4,9 +4,21 @@ import path from "path";
 import { fileURLToPath } from "url";
 import Razorpay from "razorpay";
 import crypto from "crypto";
+import admin from "firebase-admin";
+import { initializeApp, getApps } from "firebase-admin/app";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { readFileSync } from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Initialize Firebase Admin
+const firebaseConfig = JSON.parse(readFileSync(path.join(process.cwd(), 'firebase-applet-config.json'), 'utf-8'));
+const app = getApps().length === 0 
+  ? initializeApp({ projectId: firebaseConfig.projectId }) 
+  : getApps()[0];
+
+const adminDb = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 
 async function startServer() {
   const app = express();
@@ -14,9 +26,13 @@ async function startServer() {
 
   // Razorpay Initialization
   const razorpay = new Razorpay({
-    key_id: process.env.VITE_RAZORPAY_KEY_ID || "rzp_test_Sg6fYCNTFZtjgp",
-    key_secret: process.env.RAZORPAY_KEY_SECRET || "z6Vw4xTRq7JB9UcPdGfukTni",
+    key_id: process.env.VITE_RAZORPAY_KEY_ID || "",
+    key_secret: process.env.RAZORPAY_KEY_SECRET || "",
   });
+
+  if (!process.env.VITE_RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    console.warn("CRITICAL: Razorpay keys missing. Payment nodes will be inactive.");
+  }
 
   // Middleware
   app.use(express.json());
@@ -48,15 +64,26 @@ async function startServer() {
   // Razorpay: Verify Payment
   app.post("/api/razorpay/verify", async (req, res) => {
     try {
-      const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
-      const secret = process.env.RAZORPAY_KEY_SECRET || "z6Vw4xTRq7JB9UcPdGfukTni";
+      const { razorpay_order_id, razorpay_payment_id, razorpay_signature, userId } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ status: "failure", message: "User ID required for neural linking" });
+      }
+
+      const secret = process.env.RAZORPAY_KEY_SECRET || "";
 
       const hmac = crypto.createHmac("sha256", secret);
       hmac.update(razorpay_order_id + "|" + razorpay_payment_id);
       const generated_signature = hmac.digest("hex");
 
       if (generated_signature === razorpay_signature) {
-        res.json({ status: "success", message: "Payment verified successfully" });
+        // SECURE ELEVATION: Grant elite status via Admin SDK
+        await adminDb.collection("users").doc(userId).set({
+          isElite: true,
+          eliteActivatedAt: FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        res.json({ status: "success", message: "Payment verified. Elite access granted." });
       } else {
         res.status(400).json({ status: "failure", message: "Invalid signature" });
       }

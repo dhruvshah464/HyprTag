@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Instagram, 
   Twitter, 
@@ -12,7 +12,9 @@ import {
   ArrowRight as ArrowRightIcon,
   Zap,
   MessageCircle,
-  Share2
+  Share2,
+  X,
+  Loader2
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -25,15 +27,49 @@ export default function Connections() {
   
   const connections = profile?.connections || {};
 
-  const handleToggle = async (platformId: string, isConnected: boolean) => {
+  const [verifyingPlatform, setVerifyingPlatform] = React.useState<any>(null);
+  const [handle, setHandle] = React.useState('');
+  const [step, setStep] = React.useState<'input' | 'scanning' | 'success'>('input');
+
+  const handleToggle = (platform: any) => {
+    if (platform.connected) {
+      if (window.confirm(`Revoke tactical authorization for ${platform.name}? This will sever the neural link.`)) {
+        executeConnection(platform.id, false);
+      }
+    } else {
+      setVerifyingPlatform(platform);
+      setHandle('');
+      setStep('input');
+    }
+  };
+
+  const executeConnection = async (platformId: string, isConnected: boolean, socialHandle?: string) => {
     if (!user) return;
     const userRef = doc(db, 'users', user.uid);
-    await setDoc(userRef, {
+    const updateData: any = {
       connections: {
         ...connections,
-        [platformId]: !isConnected
+        [platformId]: isConnected
       }
-    }, { merge: true });
+    };
+    if (socialHandle) {
+      updateData.socialHandles = {
+        ...(profile?.socialHandles || {}),
+        [platformId]: socialHandle
+      };
+    }
+    await setDoc(userRef, updateData, { merge: true });
+  };
+
+  const startVerification = async () => {
+    if (!handle) return;
+    setStep('scanning');
+    await new Promise(r => setTimeout(r, 3000));
+    await executeConnection(verifyingPlatform.id, true, handle.startsWith('@') ? handle : `@${handle}`);
+    setStep('success');
+    setTimeout(() => {
+      setVerifyingPlatform(null);
+    }, 2000);
   };
 
   const PLATFORMS = [
@@ -145,7 +181,7 @@ export default function Connections() {
             </div>
             
             <button 
-              onClick={() => handleToggle(platform.id, platform.connected)}
+              onClick={() => handleToggle(platform)}
               className={cn(
                 "px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] flex items-center gap-2 transition-all border",
                 platform.connected 
@@ -158,17 +194,100 @@ export default function Connections() {
             </button>
           </motion.div>
         ))}
-        
-        <div className="hypr-card p-8 border-dashed border-slate-200 flex flex-col items-center justify-center gap-4 text-center group cursor-pointer hover:bg-slate-50 hover:border-brand-accent/30 transition-all bg-transparent shadow-none">
-           <div className="w-14 h-14 rounded-full border border-slate-200 flex items-center justify-center text-slate-300 group-hover:text-brand-accent group-hover:border-brand-accent transition-all">
-              <Plus className="w-6 h-6" />
-           </div>
-           <div className="space-y-1">
-              <p className="font-bold text-sm tracking-tight text-slate-800">Add Meta Ads</p>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Connect for Pixel Data</p>
-           </div>
-        </div>
       </div>
+
+      <AnimatePresence>
+        {verifyingPlatform && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="hypr-card max-w-md w-full bg-white p-12 space-y-8 relative overflow-hidden"
+            >
+              <button 
+                onClick={() => setVerifyingPlatform(null)}
+                className="absolute top-8 right-8 text-slate-300 hover:text-slate-900 transition-colors"
+                disabled={step === 'scanning'}
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              <div className="text-center space-y-6">
+                <div className={cn("w-20 h-20 rounded-3xl flex items-center justify-center mx-auto shadow-xl", verifyingPlatform.bg)}>
+                  <verifyingPlatform.icon className={cn("w-10 h-10", verifyingPlatform.color)} />
+                </div>
+                
+                <div className="space-y-2">
+                  <h3 className="text-3xl font-display font-bold italic tracking-tighter text-slate-900">Neural <span className="text-brand-accent">Linking</span></h3>
+                  <p className="text-slate-500 text-sm italic">"Initializing secure communication bridge with {verifyingPlatform.name} nodes."</p>
+                </div>
+
+                <AnimatePresence mode="wait">
+                  {step === 'input' && (
+                    <motion.div 
+                      key="input"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      className="space-y-6"
+                    >
+                      <div className="space-y-2 text-left">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{verifyingPlatform.name} Handle</label>
+                        <input 
+                          type="text" 
+                          placeholder="@account_handle"
+                          className="hypr-input w-full py-4 bg-slate-50 focus:bg-white text-slate-900"
+                          value={handle}
+                          onChange={(e) => setHandle(e.target.value)}
+                        />
+                      </div>
+                      <button 
+                        disabled={!handle}
+                        onClick={startVerification}
+                        className="btn-hypr-primary w-full h-16 text-[10px] font-bold tracking-[0.2em] uppercase flex items-center justify-center gap-3"
+                      >
+                         Execute Tactical Link <ArrowRightIcon className="w-4 h-4" />
+                      </button>
+                    </motion.div>
+                  )}
+
+                  {step === 'scanning' && (
+                    <motion.div 
+                      key="scanning"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="py-10 space-y-6"
+                    >
+                      <div className="relative">
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-32 h-32 border-2 border-brand-accent/20 rounded-full animate-ping" />
+                        </div>
+                        <Loader2 className="w-12 h-12 text-brand-accent animate-spin mx-auto relative z-10" />
+                      </div>
+                      <p className="text-[10px] font-bold text-brand-accent uppercase tracking-[0.4em] animate-pulse">Extracting User Metrics...</p>
+                    </motion.div>
+                  )}
+
+                  {step === 'success' && (
+                    <motion.div 
+                      key="success"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="py-10 space-y-6"
+                    >
+                      <div className="w-20 h-20 bg-emerald-50 border border-emerald-100 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/10">
+                        <CheckCircle2 className="w-10 h-10 text-emerald-500" />
+                      </div>
+                      <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-[0.4em]">Proprietary Link Established</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <div className="hypr-card p-10 bg-white border-slate-200 relative overflow-hidden group shadow-md">
          <div className="absolute top-[-20%] right-[-10%] p-8 opacity-[0.03] transition-transform duration-700 group-hover:scale-110 shadow-inner">

@@ -55,7 +55,7 @@ export default function Onboarding() {
   const handleDiscovery = async () => {
     setScanning(true);
     await new Promise(r => setTimeout(r, 4000));
-    setDiscoveredPlatforms(['instagram', 'tiktok']); // Simulation of discovered linked platforms
+    setDiscoveredPlatforms([]); // Empty discovery to reflect reality for new users
     setScanning(false);
   };
 

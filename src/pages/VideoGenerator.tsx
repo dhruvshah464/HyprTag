@@ -18,9 +18,11 @@ import {
   Smartphone,
   Save,
   Volume2,
-  CheckCircle
+  CheckCircle,
+  ArrowUpRight
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
+import { Link } from 'react-router-dom';
 import { GoogleGenAI } from "@google/genai";
 import { db } from '../lib/firebase';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
@@ -32,6 +34,52 @@ export default function VideoGenerator() {
   const { user, isElite } = useAuth();
   const [prompt, setPrompt] = useState("");
   const [resolution, setResolution] = useState<'720p' | '1080p'>('720p');
+  
+  if (!isElite) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center p-8 text-center space-y-10 relative overflow-hidden">
+         <div className="absolute inset-0 bg-brand-accent/[0.02] rounded-full blur-[160px] -z-10" />
+         
+         <div className="w-24 h-24 rounded-3xl bg-white border border-slate-100 flex items-center justify-center relative group shadow-sm">
+            <Video className="w-12 h-12 text-slate-200 group-hover:text-brand-accent transition-colors" />
+            <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 p-2 bg-slate-900 border border-slate-800 rounded-xl">
+               <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest px-2">Elite Locked</span>
+            </div>
+         </div>
+
+         <div className="space-y-4 max-w-xl">
+            <h2 className="text-5xl font-display font-bold italic tracking-tighter text-slate-900">Neural <span className="text-brand-accent">Reels</span></h2>
+            <p className="text-xl text-slate-500 font-light italic leading-relaxed">
+              "Deploy high-fidelity video assets synthesized through the Google Veo engine. Advanced social scripts and cinematic visual clusters available exclusively for Elite creators."
+            </p>
+         </div>
+
+         <Link to="/upgrade" className="btn-hypr-primary h-16 px-12 text-xs font-bold uppercase tracking-[0.25em] flex items-center gap-3 shadow-xl shadow-brand-accent/20">
+            Initialize Upgrade Sequence <ArrowUpRight className="w-4 h-4" />
+         </Link>
+
+         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 pt-12 text-left">
+            <div className="space-y-1">
+               <p className="text-[10px] font-bold text-brand-accent uppercase tracking-widest">Veo 3.1</p>
+               <p className="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">Render Engine</p>
+            </div>
+            <div className="space-y-1">
+               <p className="text-[10px] font-bold text-brand-accent uppercase tracking-widest">1080P</p>
+               <p className="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">HD Mastering</p>
+            </div>
+            <div className="space-y-1">
+               <p className="text-[10px] font-bold text-brand-accent uppercase tracking-widest">Multi-Ratio</p>
+               <p className="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">Omni-Platform</p>
+            </div>
+            <div className="space-y-1">
+               <p className="text-[10px] font-bold text-brand-accent uppercase tracking-widest">AI Scripts</p>
+               <p className="text-[9px] text-slate-400 uppercase font-bold tracking-tighter">Strategic Hooks</p>
+            </div>
+         </div>
+      </div>
+    );
+  }
+
   const [aspectRatio, setAspectRatio] = useState<'9:16' | '16:9'>('9:16');
   const [isGenerating, setIsGenerating] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);

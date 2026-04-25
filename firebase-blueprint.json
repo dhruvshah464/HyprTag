@@ -57,6 +57,16 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "profileUrl", "insight", "trendingTags"]
+    },
+    "PrivateData": {
+      "title": "Sensitive Private Data",
+      "description": "Isolated storage for API tokens and credentials",
+      "type": "object",
+      "properties": {
+        "tokens": { "type": "object" },
+        "keys": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "firestore": {
@@ -71,6 +81,10 @@
     "users": {
        "schema": "User",
        "description": "Registered user profiles and settings"
+    },
+    "users/{userId}/private/data": {
+      "schema": "PrivateData",
+      "description": "Isolated sensitive credentials for a specific user"
     },
     "competitorInsights": {
       "schema": "CompetitorInsight",

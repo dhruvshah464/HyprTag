@@ -16,13 +16,16 @@ import {
   AlertCircle,
   Layers,
   Share2,
-  Copy
+  Copy,
+  X
 } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
 import { db, auth, handleFirestoreError } from '../lib/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getCountFromServer } from 'firebase/firestore';
 import { useAuth } from '../lib/auth';
 import { cn } from '../lib/utils';
+import { useNavigate } from 'react-router-dom';
+import { EliteUpgradeModal } from '../components/EliteUpgradeModal';
 
 function getAI() {
   const apiKey = (process.env as any).GEMINI_API_KEY || "dummy-key";
@@ -95,6 +98,8 @@ export default function Competitors() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [tagToCopy, setTagToCopy] = useState<string | null>(null);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     async function checkUsage() {
@@ -165,7 +170,7 @@ export default function Competitors() {
     }
     
     if (!isElite && usageCount !== null && usageCount >= 1) {
-      setError("Intelligence threshold reached. Upgrade to Elite for unlimited competitor infiltration.");
+      setUpgradeModalOpen(true);
       return;
     }
 
@@ -426,6 +431,7 @@ export default function Competitors() {
           </motion.div>
         ) : null}
       </AnimatePresence>
+      <EliteUpgradeModal isOpen={upgradeModalOpen} onClose={() => setUpgradeModalOpen(false)} />
     </div>
   );
 }

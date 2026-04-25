@@ -49,42 +49,61 @@ service cloud.firestore {
 
     function isValidUser(data) {
       return (data.get('email', null) is string || data.get('email', null) == null)
-        && (data.get('isElite', null) is bool || data.get('isElite', null) == null)
-        && (data.get('onboarded', null) is bool || data.get('onboarded', null) == null)
-        && (data.get('demoCompleted', null) is bool || data.get('demoCompleted', null) == null)
-        && (data.get('displayName', null) is string || data.get('displayName', null) == null)
-        && (data.get('niche', null) is string || data.get('niche', null) == null)
-        && (data.get('goals', null) is list || data.get('goals', null) == null)
-        && (data.get('connections', null) is map || data.get('connections', null) == null)
-        && (data.get('socialHandles', null) is map || data.get('socialHandles', null) == null)
-        && (data.get('linkedPlatforms', null) is list || data.get('linkedPlatforms', null) == null);
+        && (data.get('isElite', false) is bool)
+        && (data.get('onboarded', false) is bool)
+        && (data.get('demoCompleted', false) is bool)
+        && (data.get('displayName', '') is string && data.get('displayName', '').size() <= 100)
+        && (data.get('niche', '') is string && data.get('niche', '').size() <= 100)
+        && (data.get('goals', []) is list)
+        && (data.get('connections', {}) is map)
+        && (data.get('socialHandles', {}) is map)
+        && (data.get('linkedPlatforms', []) is list);
+    }
+
+    function isValidPrivateData(data) {
+      return (data.get('tokens', {}) is map)
+        && (data.get('keys', {}) is map)
+        && (data.get('updatedAt', request.time) == request.time);
     }
 
     // --- Collection Routes ---
     
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) && isValidId(userId) && isValidUser(incoming());
-      allow update: if (isOwner(userId) || isAdmin()) && isValidId(userId) && isValidUser(incoming());
+      allow list: if isAdmin(); // Strictly block user listing
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUser(incoming())
+                       && incoming().isElite == false;
+      allow update: if (isOwner(userId) || isAdmin()) && isValidId(userId) && isValidUser(incoming())
+                       && (isAdmin() || incoming().isElite == existing().isElite);
       allow delete: if isAdmin();
+
+      // Isolated Private Collection for sensitive credentials
+      match /private/{docId} {
+        allow get: if isOwner(userId) || isAdmin();
+        allow list: if false; // Never list sensitive keys/tokens
+        allow write: if (isOwner(userId) || isAdmin()) && isValidId(docId) && isValidPrivateData(incoming());
+      }
     }
 
     match /generations/{genId} {
-      allow read: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow get: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow list: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
       allow create: if isSignedIn() && isValidId(genId) && isValidGeneration(incoming());
       allow update: if (isOwner(existing().userId) || isAdmin()) && incoming().userId == existing().userId;
       allow delete: if isOwner(existing().userId) || isAdmin();
     }
 
     match /scheduledPosts/{postId} {
-      allow read: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow get: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow list: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
       allow create: if isSignedIn() && isValidId(postId) && isValidScheduledPost(incoming());
       allow update: if (isOwner(existing().userId) || isAdmin()) && incoming().userId == existing().userId;
       allow delete: if isOwner(existing().userId) || isAdmin();
     }
 
     match /competitorInsights/{insightId} {
-      allow read: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow get: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow list: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
       allow create: if isSignedIn() && isValidId(insightId) && isValidCompetitorInsight(incoming());
       allow delete: if isOwner(existing().userId) || isAdmin();
     }

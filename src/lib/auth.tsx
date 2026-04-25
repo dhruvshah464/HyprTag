@@ -72,7 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               demoCompleted: false,
               displayName: authUser.displayName || '',
               connections: {},
-              linkedPlatforms: ['instagram'] // Default simulation
+              linkedPlatforms: [] // Reset simulation
             };
             setDoc(userRef, {
               ...initialProfile,
@@ -135,9 +135,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const upgradeToElite = async () => {
-    if (!user) return;
-    const userRef = doc(db, 'users', user.uid);
-    await setDoc(userRef, { isElite: true }, { merge: true });
+    // Client-side upgrade is now blocked by security rules. 
+    // This function will be called AFTER the server-side verification updates the user document.
+    // We just need to trigger a profile refresh which onSnapshot will handle.
+    console.log("Strategic Upgrade Synchronization Requested. Awaiting neural confirmation from server.");
   };
 
   const completeOnboarding = async (details: Partial<UserProfile>) => {
