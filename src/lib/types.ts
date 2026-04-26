@@ -42,11 +42,38 @@ export interface UserGrowthProfile {
   targetAudience: string;
   lastAnalysisAt: Timestamp | any;
   overallViralScore: number;
+  
+  // Identity & Gamification
+  identity: {
+    label: 'Beginner' | 'Rising Creator' | 'Viral Scientist' | 'Authority';
+    score: number; // 0-100
+    archetype: string; // e.g., "Storyteller"
+  };
+  streak: number;
+  level: number;
+  points: number;
+  
   suggestions: {
     title: string;
     description: string;
     impact: 'high' | 'medium' | 'low';
   }[];
+}
+
+export interface ViralTestResult {
+  score: number;
+  feedback: string;
+  potential: string;
+  improvements: string[];
+}
+
+export interface IdeaItem {
+  id: string;
+  type: 'hook' | 'format' | 'structure';
+  title: string;
+  content: string;
+  category: string;
+  trendingScore: number;
 }
 
 export interface MonetizationTemplate {

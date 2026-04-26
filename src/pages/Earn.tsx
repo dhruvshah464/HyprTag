@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   DollarSign, 
   MessageSquare, 
-  Mail, 
-  PieChart, 
-  Copy, 
-  Check, 
-  ArrowUpRight, 
   Target,
-  FileText,
-  MousePointer2,
   Zap,
   TrendingUp,
+  Sparkles,
+  PieChart,
+  Copy,
+  Check,
+  ChevronRight,
+  Rocket,
   Search,
   Filter
 } from 'lucide-react';
@@ -31,93 +30,54 @@ const TEMPLATES: Template[] = [
   {
     id: '1',
     category: 'brand-deals',
-    title: 'First Pitch: Outreach for Micro-Creators',
+    title: 'Nexus-1: Outreach for Micro-Creators',
     description: 'Perfect for creators between 1k-10k followers. Focuses on engagement over reach.',
-    content: `Subject: Partnership Proposal: Hi [Brand Name] x [Your Name]
-
-Hi [Name/Brand Team],
-
-I've been a huge fan of [Brand] ever since [Specific detail about the product].
-
-I am a creator in the [Your Niche] space with a highly engaged audience of [Follower Count] who regularly ask me about [Problem your niche has].
-
-I'm currently planning my content for next month and would love to feature [Brand] in a dedicated [Reel/Video]. My audience engagement rate is [Engagement %], which is [x%] higher than the industry average.
-
-Would you be open to a quick chat about how we can drive [Specific goal like sales/awareness] for [Brand] next month?
-
-Best,
+    content: `Subject: Partnership Proposal: [Brand Name] x [Your Name]
+\nHi [Name],
+\nI've been using [Brand] for [Time] and it's a staple in my workflow. My audience of [Follower Count] in [Niche] is currently struggling with [Problem].
+\nI'm planning content for next month and would love to feature [Brand] in a dedicated Reel. My last 3 videos hit [Average Views].
+\nOpen to a quick chat?
+\nBest,
 [Your Name]`,
     successRate: 'High'
   },
   {
     id: '2',
     category: 'dm-scripts',
-    title: 'Follower to Client Conversion',
-    description: 'A soft-sell approach for new followers who fit your ideal client profile.',
-    content: `Hi [Name], 
-
-Thanks for the follow! I noticed you're also into [Topic/Niche]. 
-
-I actually just put together a quick [PDF/Freebie] on how to [Solve specific problem]. Would you like me to send it over? No strings attached!`,
+    title: 'The Soft Liquidation DM',
+    description: 'Convert new followers into qualified leads without being aggressive.',
+    content: `Hi [Name], thanks for joining the Nexus!
+\nI noticed you're also building in [Niche]. I actually just built a custom hook generator that solved my reach issue.
+\nWould you like me to send over the logic map? No strings attached!`,
     successRate: 'Elite'
   },
   {
     id: '3',
     category: 'funnels',
-    title: 'Bio Optimization Formula',
-    description: 'The "Who, What, Why" structure that converts profile visits into followers.',
-    content: `Line 1: I help [Target Audience] [Result you provide].
-Line 2: [Your authority: e.g. Helped 100+ clients / 1M+ Views].
-Line 3: [Clear CTA with emoji] 👇
+    title: 'Bio Forge Matrix',
+    description: 'Structure that converts 15% of profile visitors into loyalists.',
+    content: `Line 1: I help [Who] solve [Problem] via [Mechanism].
+Line 2: 🚀 [Proof: e.g. 1M+ reached / Top 1% Niche]
+Line 3: Access the Protocol Below 👇
 Line 4: [Link]`,
-    successRate: '92%'
-  },
-  {
-    id: '4',
-    category: 'brand-deals',
-    title: 'Follow-up Script (7 Days Later)',
-    description: 'Stay top-of-mind without being annoying.',
-    content: `Hi [Name], 
-
-Just wanted to bump this to the top of your inbox.
-
-I actually just had a post go viral in the [Niche] space ([Link to post]), and the audience is really asking for recommendations like [Brand].
-
-Would love to bridge that gap. Let me know if you're interested!`,
-    successRate: 'Medium'
-  },
-  {
-    id: '5',
-    category: 'offers',
-    title: 'Digital Product Pricing Matrix',
-    description: 'How to price your guides, presets, or courses for maximum conversion.',
-    content: `Freebie: Lead Magnet (Email capture)
-$7 - $27: Impulse Buy (Low risk, quick win)
-$47 - $97: Mid-Tier (Deep dive, standard guide)
-$197+: Signature Offer (Full system / transformation)`,
-    successRate: 'Stable'
+    successRate: 'Optimal'
   }
 ];
 
-const CATEGORIES = [
-  { id: 'all', label: 'All Resources', icon: Target },
-  { id: 'brand-deals', label: 'Brand Deals', icon: DollarSign },
-  { id: 'dm-scripts', label: 'DM Scripts', icon: MessageSquare },
-  { id: 'funnels', label: 'Funnel Maps', icon: TrendingUp },
-  { id: 'offers', label: 'Offer Design', icon: PieChart },
+const STEPS = [
+  { id: 1, label: 'Grow', icon: TrendingUp, status: 'Completed' },
+  { id: 2, label: 'Capture', icon: Target, status: 'Active' },
+  { id: 3, label: 'Convert', icon: MessageSquare, status: 'Locked' },
+  { id: 4, label: 'Scale', icon: DollarSign, status: 'Locked' }
 ];
 
 export default function Earn() {
+  const [currentStep, setCurrentStep] = useState(2);
+  const [followerGoal, setFollowerGoal] = useState(5000);
   const [activeCategory, setActiveCategory] = useState('all');
-  const [search, setSearch] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const filtered = TEMPLATES.filter(t => {
-    const matchesCat = activeCategory === 'all' || t.category === activeCategory;
-    const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) || 
-                         t.description.toLowerCase().includes(search.toLowerCase());
-    return matchesCat && matchesSearch;
-  });
+  const estimatedYield = Math.floor((followerGoal * 0.25) + 500);
 
   const handleCopy = (id: string, content: string) => {
     navigator.clipboard.writeText(content);
@@ -126,129 +86,161 @@ export default function Earn() {
   };
 
   return (
-    <div className="space-y-12 pb-20 max-w-6xl mx-auto text-left">
-      {/* Header */}
-      <div className="space-y-6">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold uppercase tracking-widest text-emerald-600">
-          <DollarSign className="w-3 h-3" />
-          Revenue Accelerator
+    <div className="space-y-12 pb-20">
+      {/* Header HUD */}
+      <div className="flex flex-col md:flex-row justify-between items-end gap-10">
+        <div className="space-y-6">
+           <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-cyan/10 border border-brand-cyan/30 text-[10px] font-mono uppercase tracking-[0.3em] text-brand-cyan">
+              Revenue Protocol v2.4
+           </div>
+           <div className="space-y-2">
+             <h1 className="text-6xl md:text-8xl font-display uppercase italic italic leading-none tracking-tighter text-white">
+               Liquidity <span className="text-brand-cyan">Protocol</span>
+             </h1>
+             <p className="text-white/40 text-sm font-mono lowercase tracking-widest italic">mastering the exchange of attention for capital</p>
+           </div>
         </div>
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-2">
-            <h1 className="text-5xl font-display font-bold italic tracking-tighter text-slate-900">The <span className="text-emerald-500">Monetization</span> Lab</h1>
-            <p className="text-slate-500 max-w-lg">Turn your attention into income. Use proven pitch templates, conversion scripts, and offer frameworks.</p>
-          </div>
-          <div className="flex bg-slate-100 p-1 rounded-2xl">
-             <div className="flex items-center gap-2 px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                <Target className="w-3 h-3" />
-                Live Revenue Stats: <span className="text-slate-900">$0.00</span>
-             </div>
-          </div>
+
+        <div className="hypr-card min-w-[360px] bg-brand-surface border-brand-cyan/20 p-8 space-y-6">
+           <div className="flex justify-between items-center font-mono text-[9px] uppercase tracking-widest text-brand-cyan/60">
+              <span>Overall Progress</span>
+              <span>STEP 0{currentStep} / 04</span>
+           </div>
+           <div className="grid grid-cols-4 gap-2">
+              {[1,2,3,4].map(i => (
+                <div key={i} className={cn("h-1", i <= currentStep ? "bg-brand-cyan" : "bg-white/10")} />
+              ))}
+           </div>
+           <div className="flex justify-between items-center">
+              <span className="text-[9px] font-mono text-white/20 uppercase tracking-widest italic">Phase: Capture Velocity</span>
+              <Sparkles className="w-3 h-3 text-brand-cyan" />
+           </div>
         </div>
       </div>
 
-      {/* Action Bar */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        <div className="lg:col-span-1 space-y-6">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Search scripts..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-12 pl-12 pr-4 bg-white border border-slate-100 rounded-xl outline-none focus:border-emerald-500 transition-all text-sm font-light"
-            />
-          </div>
-          <div className="space-y-1">
-            {CATEGORIES.map(cat => (
-              <button
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
-                className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left border transition-all",
-                  activeCategory === cat.id 
-                    ? "bg-slate-900 border-slate-900 text-white" 
-                    : "bg-white border-transparent text-slate-500 hover:bg-slate-50"
-                )}
-              >
-                <cat.icon className="w-4 h-4" />
-                <span className="text-[10px] font-bold uppercase tracking-widest">{cat.label}</span>
-              </button>
-            ))}
-          </div>
-          
-          <div className="p-6 bg-slate-900 rounded-[2rem] relative overflow-hidden group">
-            <Zap className="absolute -bottom-4 -right-4 w-24 h-24 text-emerald-500 opacity-20" />
-            <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-2">Growth Tip</p>
-            <p className="text-sm font-light italic text-slate-300 leading-relaxed">"Consistency in outreach is more important than the scale of your following. Pitch 3 brands today."</p>
-          </div>
-        </div>
+      {/* Journey Map replaced with Revenue Nodes */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+         <RevenueNode label="Pipeline Liquidity" value="₹12,482" trend="+12.4%" />
+         <RevenueNode label="Active Unlock Nodes" value="14" trend="+2 new" />
+         <RevenueNode label="Strategy Royalty" value="12.4%" trend="Standard" />
+         <RevenueNode label="Elite Scaling" value="Active" trend="Level 4" isAccent />
+      </div>
 
-        <div className="lg:col-span-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filtered.map((template, idx) => (
-              <motion.div 
-                key={template.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.05 }}
-                className="hypr-card p-6 flex flex-col h-full group"
-              >
-                <div className="flex justify-between items-start mb-6">
-                  <div className={cn(
-                    "w-10 h-10 rounded-xl flex items-center justify-center border",
-                    template.category === 'brand-deals' ? "bg-emerald-50 border-emerald-100 text-emerald-500" :
-                    template.category === 'dm-scripts' ? "bg-blue-50 border-blue-100 text-blue-500" :
-                    template.category === 'funnels' ? "bg-purple-50 border-purple-100 text-purple-500" :
-                    "bg-orange-50 border-orange-100 text-orange-500"
-                  )}>
-                    {template.category === 'brand-deals' ? <DollarSign className="w-5 h-5" /> :
-                     template.category === 'dm-scripts' ? <MessageSquare className="w-5 h-5" /> :
-                     template.category === 'funnels' ? <TrendingUp className="w-5 h-5" /> :
-                     <Target className="w-5 h-5" />}
-                  </div>
-                  {template.successRate && (
-                    <div className="text-[8px] font-bold uppercase tracking-widest px-2 py-1 bg-slate-50 border border-slate-100 rounded-lg text-slate-400">
-                      Success: <span className="text-emerald-500">{template.successRate}</span>
-                    </div>
-                  )}
-                </div>
+      {/* Yield Simulator replaced with Revenue Breakdown */}
+      <div className="hypr-card p-12 bg-brand-surface border-white/5 space-y-12 group overflow-hidden relative">
+         <div className="absolute top-0 right-0 p-12 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
+            <PieChart className="w-80 h-80 text-brand-cyan" />
+         </div>
+         
+         <div className="space-y-4 relative z-10">
+            <h2 className="text-4xl font-display uppercase italic tracking-tighter text-white">Revenue <span className="text-brand-cyan">Matrix</span></h2>
+            <p className="text-white/40 text-sm font-mono tracking-widest lowercase italic">breakdown of strategic asset performance</p>
+         </div>
 
-                <div className="space-y-2 mb-6 flex-grow">
-                  <h3 className="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">{template.title}</h3>
-                  <p className="text-xs text-slate-500 font-light leading-relaxed">{template.description}</p>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="relative">
-                    <pre className="p-4 bg-slate-50 border border-slate-100 rounded-xl text-[10px] text-slate-600 font-mono overflow-x-hidden whitespace-pre-wrap max-h-40 overflow-y-auto">
-                      {template.content}
-                    </pre>
-                  </div>
-                  <button 
-                    onClick={() => handleCopy(template.id, template.content)}
-                    className="w-full flex items-center justify-center gap-2 h-12 bg-white border border-slate-100 rounded-xl text-[10px] font-bold uppercase tracking-widest text-slate-600 hover:border-emerald-500 hover:text-emerald-500 transition-all"
-                  >
-                    {copiedId === template.id ? (
-                      <><Check className="w-4 h-4" /> Copied</>
-                    ) : (
-                      <><Copy className="w-4 h-4" /> Copy Template</>
-                    )}
-                  </button>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {filtered.length === 0 && (
-            <div className="h-96 flex flex-col items-center justify-center border border-dashed border-slate-200 rounded-[3rem]">
-               <Filter className="w-12 h-12 text-slate-200 mb-4" />
-               <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">No scripts matching your search</p>
+         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 relative z-10">
+            <div className="md:col-span-12 lg:col-span-8 space-y-4">
+               <RewardItem title="Strategy Unlock Protocol" sub="14 Unlocks @ ₹600 avg" amount="₹8,400" />
+               <RewardItem title="Remix Royalties" sub="421 Remixes // Level 2 Bonus" amount="₹2,140" />
+               <RewardItem title="Niche Dominance Bonus" sub="Ends in 14h // SaaS Growth" amount="₹1,942" />
             </div>
-          )}
-        </div>
+
+            <div className="md:col-span-12 lg:col-span-4 p-12 bg-brand-cyan/[0.03] border border-brand-cyan/20 flex flex-col justify-center items-center text-center space-y-6">
+               <p className="text-[9px] font-mono text-brand-cyan uppercase tracking-[0.3em]">Total Intelligence Yield</p>
+               <h3 className="text-7xl font-display italic tracking-tighter text-white">
+                  ₹12,482
+               </h3>
+               <button className="hypr-btn hypr-btn-outline border-brand-cyan/40 text-brand-cyan w-full text-[9px] group overflow-hidden">
+                  <span className="relative z-10">Initialize Payout Protocol</span>
+                  <div className="absolute inset-0 bg-brand-cyan translate-y-full group-hover:translate-y-0 transition-transform" />
+               </button>
+            </div>
+         </div>
       </div>
+
+      {/* Resource Lab */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+         <div className="lg:col-span-4 space-y-6">
+            <div className="relative">
+              <input 
+                type="text" placeholder="Protocol Search..."
+                className="w-full h-12 bg-white/5 border border-white/5 pl-4 text-xs font-mono text-white outline-none focus:border-brand-cyan transition-all"
+              />
+            </div>
+            <div className="space-y-1">
+               {['all', 'brand-deals', 'dm-scripts', 'funnels'].map(cat => (
+                 <button 
+                  key={cat} onClick={() => setActiveCategory(cat)}
+                  className={cn(
+                    "w-full px-4 py-3 border transition-all text-left uppercase text-[9px] font-mono tracking-widest",
+                    activeCategory === cat ? "bg-brand-cyan border-brand-cyan text-brand-void" : "bg-white/5 border-transparent text-white/40 hover:bg-white/10"
+                  )}
+                 >
+                   {cat.replace('-', ' ')}
+                 </button>
+               ))}
+            </div>
+            <div className="p-6 bg-brand-surface border border-white/5 italic text-xs text-white/40 leading-relaxed font-mono">
+               System Alert: Brand outreach is most effective between 09:00 - 11:00 UTC. Synchronize your pitches to this window.
+            </div>
+         </div>
+
+         <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            {TEMPLATES.map((t) => (
+              <div key={t.id} className="hypr-card p-8 border border-white/5 space-y-6 flex flex-col justify-between group">
+                 <div className="space-y-4">
+                    <div className="flex justify-between items-start">
+                       <h3 className="text-lg font-display uppercase italic text-white leading-tight">{t.title}</h3>
+                       <Check className="w-4 h-4 text-brand-cyan/20 group-hover:text-brand-cyan" />
+                    </div>
+                    <p className="text-xs text-white/40 font-light italic leading-relaxed">{t.description}</p>
+                 </div>
+                 <div className="space-y-4">
+                    <div className="p-4 bg-brand-void/50 border border-white/5 text-[9px] font-mono text-white/60 whitespace-pre-wrap max-h-32 overflow-y-auto">
+                       {t.content}
+                    </div>
+                    <button 
+                      onClick={() => handleCopy(t.id, t.content)}
+                      className="w-full h-10 border border-white/10 text-[8px] font-mono uppercase tracking-[0.2em] text-white/40 hover:border-brand-cyan hover:text-brand-cyan transition-all flex items-center justify-center gap-2"
+                    >
+                       {copiedId === t.id ? 'Copied to Matrix' : 'Extract Template'}
+                    </button>
+                 </div>
+              </div>
+            ))}
+         </div>
+      </div>
+    </div>
+  );
+}
+
+function RevenueNode({ label, value, trend, isAccent }: any) {
+  return (
+    <div className={cn(
+      "hypr-card p-6 group transition-all",
+      isAccent ? "border-brand-cyan/30 bg-brand-cyan/[0.03]" : "bg-brand-surface border-white/5"
+    )}>
+      <p className="text-[9px] font-mono text-white/40 uppercase tracking-widest mb-4">{label}</p>
+      <div className="flex items-end justify-between">
+         <h4 className="text-4xl font-display italic text-white leading-none">{value}</h4>
+         <span className={cn("text-[8px] font-mono px-2 py-0.5 border", isAccent ? "border-brand-cyan text-brand-cyan" : "border-white/10 text-white/40")}>
+           {trend}
+         </span>
+      </div>
+    </div>
+  );
+}
+
+function RewardItem({ title, sub, amount }: { title: string, sub: string, amount: string }) {
+  return (
+    <div className="flex justify-between items-center p-6 bg-white/[0.02] border border-white/5 group hover:border-brand-cyan/20 transition-all">
+       <div className="space-y-1">
+          <h4 className="text-[11px] font-mono text-white uppercase tracking-widest italic">{title}</h4>
+          <p className="text-[9px] font-mono text-white/20 uppercase tracking-tighter">{sub}</p>
+       </div>
+       <div className="text-right">
+          <p className="text-xl font-display italic text-brand-cyan">{amount}</p>
+          <div className="w-12 h-0.5 bg-brand-cyan/20 ml-auto mt-1" />
+       </div>
     </div>
   );
 }

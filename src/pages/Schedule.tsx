@@ -31,7 +31,7 @@ export default function Schedule() {
 
     try {
       const q = query(
-        collection(db, "scheduledPosts"),
+        collection(db, "posts"),
         where("userId", "==", user.uid),
         orderBy("scheduledTime", "desc") // Latest first for calendar view
       );
@@ -41,7 +41,7 @@ export default function Schedule() {
         setPosts(data);
         setLoading(false);
       }, (err) => {
-        handleFirestoreError(err, 'list', 'scheduledPosts');
+        handleFirestoreError(err, 'list', 'posts');
       });
 
       return () => unsubscribe();
@@ -53,9 +53,9 @@ export default function Schedule() {
 
   const deletePost = async (id: string) => {
     try {
-      await deleteDoc(doc(db, "scheduledPosts", id));
+      await deleteDoc(doc(db, "posts", id));
     } catch (e) {
-      handleFirestoreError(e, 'delete', 'scheduledPosts');
+      handleFirestoreError(e, 'delete', 'posts');
     }
   };
 

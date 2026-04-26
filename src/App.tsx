@@ -20,7 +20,10 @@ import {
   MoreVertical,
   Layers,
   ShieldCheck,
-  Cpu
+  Cpu,
+  Brain,
+  Rocket,
+  Video
 } from 'lucide-react';
 import { cn } from './lib/utils';
 import { useAuth } from './lib/auth';
@@ -37,37 +40,39 @@ import Automations from './pages/Automations';
 import SettingsPage from './pages/Settings';
 import Onboarding from './pages/Onboarding';
 import Landing from './pages/Landing';
+import ViralTest from './pages/ViralTest';
 import HowItWorks from './pages/HowItWorks';
+import Upload from './pages/Upload';
 
 import Upgrade from './pages/Upgrade';
 import NeuralGuard from './pages/NeuralGuard';
 import EliteOnboarding from './pages/EliteOnboarding';
 import Earn from './pages/Earn';
+import Ideas from './pages/Ideas';
 
 const NavItem = ({ to, icon: Icon, label, onClick }: { to: string, icon: any, label: string, onClick?: () => void }) => (
   <NavLink 
     to={to} 
     onClick={onClick}
     className={({ isActive }) => cn(
-      "flex items-center gap-3 px-4 py-3 rounded-xl transition-all group",
-      isActive ? "bg-brand-accent text-white shadow-lg shadow-brand-accent/20" : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+      "flex items-center gap-3 px-4 py-3 border border-transparent transition-all group",
+      isActive ? "bg-brand-neon text-brand-void font-bold shadow-[0_0_20px_rgba(0,255,0,0.2)]" : "text-white/40 hover:bg-white/5 hover:text-white"
     )}
   >
     <Icon className="w-5 h-5 transition-transform group-hover:scale-110" />
-    {!label ? null : <span className="font-medium text-sm">{label}</span>}
-    <ChevronRight className="w-3 h-3 ml-auto opacity-0 group-hover:opacity-40 transition-opacity" />
+    {!label ? null : <span className="font-display font-medium uppercase tracking-widest text-[11px] italic">{label}</span>}
   </NavLink>
 );
 
 const UserLayout = ({ children }: { children: React.ReactNode }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [isCollapsed, setIsCollapsed] = React.useState(false);
-  const { logout, user, isElite } = useAuth();
+  const { logout, user, isElite, points, level, streak } = useAuth();
 
   const closeMobile = () => setMobileMenuOpen(false);
 
   return (
-    <div className="flex min-h-screen bg-bg-main text-slate-900 font-sans overflow-hidden">
+    <div className="flex min-h-screen bg-brand-void text-white font-sans overflow-hidden hypr-grid">
       {/* Mobile Overlay */}
       <AnimatePresence>
         {mobileMenuOpen && (
@@ -76,133 +81,134 @@ const UserLayout = ({ children }: { children: React.ReactNode }) => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={closeMobile}
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[45] xl:hidden"
+            className="fixed inset-0 bg-black/80 backdrop-blur-md z-[45] xl:hidden"
           />
         )}
       </AnimatePresence>
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 bg-bg-card border-r border-slate-200 p-6 flex flex-col transition-all duration-500 ease-in-out xl:translate-x-0 xl:relative shadow-xl overflow-hidden",
+        "fixed inset-y-0 left-0 z-50 bg-brand-surface border-r border-white/5 p-6 flex flex-col transition-all duration-500 ease-in-out xl:translate-x-0 xl:relative shadow-2xl",
         mobileMenuOpen ? "translate-x-0" : "-translate-x-full",
         isCollapsed ? "w-24" : "w-72"
       )}>
-        <div className="flex items-center justify-between mb-12 overflow-hidden">
+        <div className="scanline opacity-20" />
+        
+        <div className="flex items-center justify-between mb-12 relative z-10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-slate-950 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-slate-900/10 overflow-hidden">
-               <Zap className="w-6 h-6 text-brand-accent fill-current" />
+            <div className="w-10 h-10 bg-brand-neon rounded-none flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(0,255,0,0.3)]">
+               <Zap className="w-6 h-6 text-brand-void fill-current" />
             </div>
-            {!isCollapsed && <span className="font-display font-bold text-2xl tracking-tighter leading-none whitespace-nowrap">Viral<span className="text-brand-accent">Flow</span></span>}
+            {!isCollapsed && <span className="font-display font-bold text-2xl tracking-tighter leading-none whitespace-nowrap italic">HYPR<span className="text-brand-neon">TAGS</span></span>}
           </div>
           <button 
             onClick={() => setIsCollapsed(!isCollapsed)} 
-            className="hidden xl:flex p-1.5 hover:bg-slate-100 rounded-lg text-slate-300 hover:text-slate-600 transition-all transform hover:scale-110"
+            className="hidden xl:flex p-1.5 hover:bg-white/5 rounded-none text-white/40 hover:text-brand-neon transition-all"
           >
-            {isCollapsed ? <ChevronRight className="w-5 h-5 text-brand-accent" /> : <ChevronLeft className="w-5 h-5" />}
-          </button>
-          
-          {/* Mobile Close Button inside sidebar */}
-          <button className="xl:hidden p-2 text-slate-400" onClick={closeMobile}>
-            <X className="w-5 h-5" />
+            {isCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
           </button>
         </div>
 
-        <nav className="space-y-1.5 flex-grow overflow-y-auto overflow-x-hidden">
-          {!isElite && !isCollapsed && (
-             <div className="mx-2 mb-8 p-6 rounded-3xl bg-brand-accent/[0.03] border border-brand-accent/10 relative overflow-hidden group hover:bg-brand-accent/[0.05] transition-all cursor-pointer" onClick={() => window.location.href='/upgrade'}>
-                <div className="absolute -top-12 -right-12 w-24 h-24 bg-brand-accent/5 rounded-full blur-2xl group-hover:bg-brand-accent/10 transition-all" />
-                <h4 className="text-[10px] font-bold text-brand-accent uppercase tracking-widest mb-2 flex items-center gap-2">
-                   <Zap className="w-3 h-3 fill-current" />
-                   Go Pro
-                </h4>
-                <p className="text-[11px] text-slate-400 leading-relaxed font-light italic whitespace-normal">
-                   "Get more reach with elite viral tools."
-                </p>
-                <div className="mt-4 flex items-center gap-2 text-[10px] font-bold text-slate-700 group-hover:gap-3 transition-all uppercase tracking-widest">
-                   Upgrade Now <ChevronRight className="w-3 h-3" />
-                </div>
-             </div>
-          )}
-          <p className={cn("text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 ml-4 transition-opacity", isCollapsed ? "opacity-0" : "opacity-100")}>
-            {!isCollapsed && "Viral Suite"}
-          </p>
-          <NavItem to="/dashboard" icon={LayoutIcon} label={isCollapsed ? "" : "Dashboard"} onClick={closeMobile} />
-          <NavItem to="/generator" icon={Hash} label={isCollapsed ? "" : "Viral Generator"} onClick={closeMobile} />
-          <NavItem to="/video-generator" icon={Layers} label={isCollapsed ? "" : "AI Reels"} onClick={closeMobile} />
-          <NavItem to="/planner" icon={Calendar} label={isCollapsed ? "" : "Planner"} onClick={closeMobile} />
-          <NavItem to="/earn" icon={Sparkles} label={isCollapsed ? "" : "Earn"} onClick={closeMobile} />
-          <NavItem to="/connections" icon={Globe} label={isCollapsed ? "" : "Connections"} onClick={closeMobile} />
-          <NavItem to="/analytics" icon={BarChart3} label={isCollapsed ? "" : "Analytics"} onClick={closeMobile} />
-          <NavItem to="/settings" icon={Settings} label={isCollapsed ? "" : "Settings"} onClick={closeMobile} />
+        {/* Global Progress Strip */}
+        {!isCollapsed && (
+          <div className="mb-8 space-y-3 relative z-10">
+            <div className="flex justify-between items-end">
+              <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest">Level {level || 1} Identity</span>
+              <span className="text-[10px] font-mono text-brand-neon">{points || 0} XP</span>
+            </div>
+            <div className="h-1 bg-white/5 relative overflow-hidden">
+              <motion.div 
+                className="absolute inset-y-0 left-0 bg-brand-neon"
+                initial={{ width: 0 }}
+                animate={{ width: `${((points || 0) % 100)}%` }}
+              />
+            </div>
+            <div className="flex justify-between items-center bg-white/5 p-2 border border-white/5">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-brand-neon animate-pulse" />
+                <span className="text-[10px] font-mono uppercase tracking-tighter">Streak: {streak || 0} Days</span>
+              </div>
+              <Sparkles className="w-3 h-3 text-brand-cyan" />
+            </div>
+          </div>
+        )}
 
-          <div className="mt-8 mb-4 h-px bg-slate-100 mx-4" />
-          <NavItem to="/how-it-works" icon={Cpu} label={isCollapsed ? "" : "Protocol Guide"} onClick={closeMobile} />
+        <nav className="space-y-1 relative z-10 flex-grow overflow-y-auto hide-scrollbar">
+          <p className={cn("text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] mb-4 ml-4", isCollapsed ? "opacity-0" : "opacity-100")}>
+            {!isCollapsed && "Viral Protocol"}
+          </p>
+          <NavItem to="/dashboard" icon={LayoutIcon} label={isCollapsed ? "" : "Mission Control"} onClick={closeMobile} />
+          <NavItem to="/ideas" icon={Globe} label={isCollapsed ? "" : "Explore Lab"} onClick={closeMobile} />
+          <NavItem to="/upload" icon={Video} label={isCollapsed ? "" : "Bridge Center"} onClick={closeMobile} />
+          <NavItem to="/viral-test" icon={Brain} label={isCollapsed ? "" : "Viral Sim"} onClick={closeMobile} />
+          <NavItem to="/generator" icon={Hash} label={isCollapsed ? "" : "Script Forge"} onClick={closeMobile} />
+          <NavItem to="/planner" icon={Calendar} label={isCollapsed ? "" : "Growth Matrix"} onClick={closeMobile} />
+          <NavItem to="/earn" icon={Rocket} label={isCollapsed ? "" : "Monetize"} onClick={closeMobile} />
+          <NavItem to="/analytics" icon={BarChart3} label={isCollapsed ? "" : "Proof Engine"} onClick={closeMobile} />
+          
+          <div className="h-px bg-white/5 my-6 mx-4" />
+          <NavItem to="/settings" icon={Settings} label={isCollapsed ? "" : "System"} onClick={closeMobile} />
         </nav>
 
-        <div className="pt-6 border-t border-slate-100 mt-auto overflow-hidden">
-          {!isCollapsed && (
-            <div className="mb-6 p-4 rounded-2xl bg-slate-50 border border-slate-100 whitespace-nowrap">
-               <div className="flex items-center gap-3 mb-3">
-                  <div className="w-2 h-2 rounded-full bg-brand-accent animate-pulse" />
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">System Online</span>
-               </div>
-            </div>
-          )}
+        <div className="pt-6 border-t border-white/5 mt-auto relative z-10">
           <button 
             onClick={logout}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-brand-accent transition-colors w-full group shrink-0"
+            className="flex items-center gap-3 px-4 py-3 text-white/40 hover:text-brand-neon transition-colors w-full group italic font-display uppercase tracking-widest text-xs"
           >
-            <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-            {!isCollapsed && <span className="font-medium text-sm">Log Out</span>}
+            <LogOut className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            {!isCollapsed && <span>Eject Session</span>}
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
       <main className="flex-grow relative h-screen overflow-y-auto">
-        <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md px-6 md:px-10 py-5 flex items-center justify-between border-b border-slate-100">
-          <button className="xl:hidden p-2 text-slate-500" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+        <header className="sticky top-0 z-40 bg-brand-void/80 backdrop-blur-md px-6 md:px-10 py-4 flex items-center justify-between border-b border-white/5">
+          <button className="xl:hidden p-2 text-white/50" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
             {mobileMenuOpen ? <X /> : <Menu />}
           </button>
           
-          <div className="hidden md:flex flex-col ml-4">
-             <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Welcome back,</h2>
-             <p className="text-sm font-bold flex items-center gap-2 text-slate-900">{user?.displayName || 'Creator'}</p>
+          <div className="hidden md:flex items-center gap-4">
+             <div className="w-1 h-8 bg-brand-neon" />
+             <div>
+                <h2 className="text-[10px] font-mono text-white/30 uppercase tracking-widest leading-tight">Current Operator</h2>
+                <p className="text-sm font-display uppercase tracking-wider text-white">{user?.displayName || 'Unknown'}</p>
+             </div>
           </div>
 
-          <div className="flex items-center gap-6">
-             <div className="hidden lg:flex flex-col items-end">
-               <div className="flex items-center gap-2 mb-0.5">
-                  <span className={cn("text-xs font-bold", isElite ? "text-brand-accent" : "text-slate-400")}>{isElite ? "Pro Plan" : "Free Plan"}</span>
-                  <div className={cn("w-1.5 h-1.5 rounded-full animate-pulse", isElite ? "bg-brand-accent" : "bg-slate-200")} />
-               </div>
-               <span className="text-[10px] font-mono text-slate-300 uppercase tracking-tighter">Active Session</span>
+          <div className="flex items-center gap-4">
+             <div className="hidden lg:flex flex-col items-end mr-4">
+                <span className="text-[10px] font-mono text-brand-neon uppercase tracking-tighter">Status: Optimal</span>
+                <span className="text-[10px] font-mono text-white/20 uppercase tracking-tighter">ID: {user?.uid.slice(0, 8)}</span>
              </div>
-             <div className="h-8 w-px bg-slate-100" />
-             <div className="flex items-center gap-3">
-                <NavLink to="/settings" className={({ isActive }) => cn(
-                  "w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center hover:bg-slate-100 transition-all",
-                  isActive && "bg-brand-accent text-white border-brand-accent shadow-lg shadow-brand-accent/20"
-                )}>
-                  <Settings className="w-5 h-5 transition-transform hover:rotate-90 duration-500" />
-                </NavLink>
-                <div 
-                  onClick={logout}
-                  className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 p-[1px] shadow-sm cursor-pointer overflow-hidden group hover:border-brand-accent transition-all relative"
-                >
-                  <img src={user?.photoURL || "https://picsum.photos/seed/face/100/100"} alt="Avatar" className="w-full h-full object-cover rounded-xl filter grayscale group-hover:grayscale-0 transition-all" referrerPolicy="no-referrer" />
-                  <div className="absolute inset-0 bg-brand-accent/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                     <LogOut className="w-4 h-4 text-white" />
-                  </div>
-                </div>
+             
+             <NavLink to="/earn" className="hidden sm:flex items-center gap-2 bg-brand-neon/10 border border-brand-neon/20 px-3 py-1.5 group hover:bg-brand-neon transition-all">
+                <Sparkles className="w-3 h-3 text-brand-neon group-hover:text-brand-void" />
+                <span className="text-[10px] font-bold text-brand-neon group-hover:text-brand-void uppercase tracking-widest">Earn Now</span>
+             </NavLink>
+
+             <div className="w-10 h-10 border border-white/10 group cursor-pointer overflow-hidden relative" onClick={() => window.location.href='/profile'}>
+                <img src={user?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.uid}`} alt="Avatar" className="w-full h-full object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all" referrerPolicy="no-referrer" />
+                <div className="absolute inset-0 border border-brand-neon opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
              </div>
           </div>
         </header>
 
-        <div className="p-6 md:p-14 relative max-w-7xl mx-auto">
-          <div className="absolute top-0 right-0 w-[40%] h-[40%] bg-brand-accent/5 rounded-full blur-[120px] -z-10" />
-          <div className="absolute bottom-0 left-0 w-[40%] h-[40%] bg-emerald-500/5 rounded-full blur-[120px] -z-10" />
-          {children}
+        <div className="relative min-h-[calc(100vh-72px)]">
+          <AnimatePresence mode="wait">
+             <motion.div 
+               key={window.location.pathname}
+               initial={{ opacity: 0, x: 20 }}
+               animate={{ opacity: 1, x: 0 }}
+               exit={{ opacity: 0, x: -20 }}
+               className="p-6 md:p-10 max-w-7xl mx-auto"
+             >
+                {children}
+             </motion.div>
+          </AnimatePresence>
+          
+          {/* Background FX */}
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] bg-brand-neon/5 rounded-full blur-[160px] -z-10 pointer-events-none" />
         </div>
       </main>
     </div>
@@ -222,7 +228,7 @@ export default function App() {
             </div>
          </div>
          <div className="space-y-2 text-center">
-            <h2 className="text-xl font-display font-bold italic tracking-tighter text-slate-900">Welcome to ViralFlow</h2>
+            <h2 className="text-xl font-display font-bold italic tracking-tighter text-slate-900">Welcome to HyprTags</h2>
             <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Your Viral Journey Awaits...</p>
          </div>
       </div>
@@ -233,7 +239,6 @@ export default function App() {
     <Router>
       <Routes>
         <Route path="/" element={!user ? <Landing /> : <Navigate to="/dashboard" />} />
-        <Route path="/how-it-works" element={<HowItWorks />} />
         <Route path="/login" element={!user ? <Login /> : (onboarded ? <Navigate to="/dashboard" /> : <Navigate to="/onboarding" />)} />
         <Route path="/onboarding" element={user ? (!onboarded ? <Onboarding /> : <Navigate to="/dashboard" />) : <Navigate to="/login" />} />
         <Route path="/elite-onboarding" element={user ? <EliteOnboarding /> : <Navigate to="/login" />} />
@@ -246,6 +251,8 @@ export default function App() {
                 <Routes>
                   <Route path="/" element={<Navigate to="/dashboard" />} />
                   <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/viral-test" element={<ViralTest />} />
+                  <Route path="/ideas" element={<Ideas />} />
                   <Route path="/generator" element={<Generator />} />
                   <Route path="/video-generator" element={<VideoGenerator />} />
                   <Route path="/competitors" element={<Competitors />} />
@@ -255,9 +262,11 @@ export default function App() {
                   <Route path="/connections" element={<Connections />} />
                   <Route path="/analytics" element={<Analytics />} />
                   <Route path="/earn" element={<Earn />} />
+                  <Route path="/upload" element={<Upload />} />
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/upgrade" element={<Upgrade />} />
                   <Route path="/neural-guard" element={<NeuralGuard />} />
+                  <Route path="/how-it-works" element={<HowItWorks />} />
                 </Routes>
               </UserLayout>
             )

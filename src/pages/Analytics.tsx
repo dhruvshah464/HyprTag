@@ -28,7 +28,8 @@ import {
   Zap,
   BarChart3,
   Cpu,
-  ShieldCheck
+  ShieldCheck,
+  Sparkles
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { db, auth, handleFirestoreError } from '../lib/firebase';
@@ -40,7 +41,7 @@ import { cn } from '../lib/utils';
 const COLORS = ['#60a5fa', '#f87171', '#fbbf24', '#c084fc'];
 
 export default function Analytics() {
-  const { user, isElite } = useAuth();
+  const { user } = useAuth();
   const [stats, setStats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d' | 'ALL'>('30d');
@@ -64,7 +65,7 @@ export default function Analytics() {
       let q;
       if (startDate) {
         q = query(
-          collection(db, "generations"),
+          collection(db, "posts"),
           where("userId", "==", user.uid),
           where("createdAt", ">=", Timestamp.fromDate(startDate)),
           orderBy("createdAt", "desc"),
@@ -72,7 +73,7 @@ export default function Analytics() {
         );
       } else {
         q = query(
-          collection(db, "generations"),
+          collection(db, "posts"),
           where("userId", "==", user.uid),
           orderBy("createdAt", "desc"),
           limit(100)
@@ -84,7 +85,7 @@ export default function Analytics() {
         setStats(data.reverse());
         setLoading(false);
       }, (err) => {
-        handleFirestoreError(err, 'list', 'generations');
+        handleFirestoreError(err, 'list', 'posts');
         setLoading(false);
       });
 
@@ -98,17 +99,11 @@ export default function Analytics() {
   const totalReach = stats.reduce((acc, curr) => acc + (curr.reach || 0), 0);
   const totalEngagement = stats.reduce((acc, curr) => acc + (curr.likes || 0) + (curr.comments || 0), 0);
 
-  const reachData = stats.map(s => ({
-    name: s.createdAt ? format(s.createdAt.toDate(), 'MM/dd') : '',
-    reach: s.reach || 0
-  }));
-
   const engagementData = [
-    { name: 'Likes', value: stats.reduce((acc, curr) => acc + (curr.likes || 0), 0) },
-    { name: 'Comments', value: stats.reduce((acc, curr) => acc + (curr.comments || 0), 0) }
+    { name: 'Signals', value: stats.reduce((acc, curr) => acc + (curr.likes || 0), 0) },
+    { name: 'Echoes', value: stats.reduce((acc, curr) => acc + (curr.comments || 0), 0) }
   ];
 
-  // Mock velocity data for visualization
   const velocityData = stats.slice(-14).map((s, i) => {
     const historical = 40 + (Math.random() * 40);
     return {
@@ -119,24 +114,27 @@ export default function Analytics() {
   });
 
   return (
-    <div className="space-y-16 pb-20 max-w-6xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-end gap-6">
-        <div className="space-y-4">
-           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-100 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-              <Cpu className="w-3 h-3 text-brand-accent" />
-              Neural Performance Core
+    <div className="space-y-12 max-w-6xl mx-auto text-left">
+      <div className="flex flex-col md:flex-row justify-between items-end gap-10">
+        <div className="space-y-6">
+           <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-neon/10 border border-brand-neon/30 text-[9px] font-mono uppercase tracking-[0.3em] text-brand-neon">
+              Proof-Engine // Neural Metrics
            </div>
-           <h1 className="font-display font-bold text-4xl italic lowercase tracking-tighter text-slate-900">Growth<span className="text-brand-accent">Insights</span></h1>
-           <p className="text-slate-500 max-w-md">Deconstruct your reach velocity and engagement signals with precision analytics.</p>
+           <div className="space-y-2">
+             <h1 className="text-6xl md:text-8xl font-display uppercase italic leading-none tracking-tighter text-white">
+               Proof <span className="text-brand-neon">Engine</span>
+             </h1>
+             <p className="text-white/40 text-sm font-mono lowercase tracking-[0.2em] italic">deconstruct reach velocity // engagement signals</p>
+           </div>
         </div>
-        <div className="flex bg-slate-50 border border-slate-100 p-1 rounded-2xl">
+        <div className="flex bg-white/5 border border-white/10 p-1">
            {(['24h', '7d', '30d', 'ALL'] as const).map(t => (
              <button 
                key={t} 
                onClick={() => setTimeRange(t)}
                className={cn(
-                 "px-4 py-2 rounded-xl text-[10px] font-bold transition-all",
-                 t === timeRange ? 'bg-white text-slate-900 shadow-md ring-1 ring-slate-100' : 'text-slate-400 hover:text-slate-600'
+                 "px-4 py-2 text-[9px] font-mono uppercase tracking-widest transition-all",
+                 t === timeRange ? 'bg-brand-neon text-brand-void' : 'text-white/30 hover:text-white'
                )}
              >
                {t}
@@ -145,201 +143,154 @@ export default function Analytics() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard label="Total Reach Capacity" value={totalReach.toLocaleString()} growth="+12.5%" icon={Target} />
-        <MetricCard label="Signal Engagements" value={totalEngagement.toLocaleString()} growth="+8.2%" icon={Zap} />
-        <MetricCard label="Strategic Velocity" value={stats.length.toString()} growth="Optimal" icon={TrendingUp} />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard label="Reach Capacity" value={totalReach.toLocaleString()} growth="+12.5%" icon={Target} />
+        <MetricCard label="Nexus Signals" value={totalEngagement.toLocaleString()} growth="+8.2%" icon={Zap} />
+        <MetricCard label="Strategy Cycles" value={stats.length.toString()} growth="Optimal" icon={TrendingUp} />
         <MetricCard label="Elite Quotient" value="78" growth="/100" icon={BarChart3} isAccent />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        <div className="hypr-card p-10 lg:col-span-2 relative overflow-hidden bg-white border-slate-200">
-          <div className="absolute top-0 right-0 p-8 opacity-[0.03]">
-             <TrendingUp className="w-32 h-32 text-brand-accent" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="hypr-card p-10 lg:col-span-2 relative overflow-hidden bg-brand-surface border-white/5">
+          <div className="scanline opacity-10" />
+          <div className="absolute top-0 right-0 p-8 opacity-[0.02]">
+             <TrendingUp className="w-80 h-80 text-brand-neon" />
           </div>
-          <div className="flex justify-between items-center mb-10">
-            <h5 className="font-bold flex items-center gap-3 text-xs uppercase tracking-[0.3em] text-slate-400">
-              <Zap className="w-4 h-4 text-brand-accent" />
-              Viral Velocity Trajectory
+          <div className="flex justify-between items-center mb-10 relative z-10">
+            <h5 className="font-bold flex items-center gap-3 text-[10px] font-mono uppercase tracking-[0.3em] text-white/40">
+               Velocity Trajectory
             </h5>
             <div className="flex gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-slate-200" />
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Historical</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-brand-accent" />
-                <span className="text-[10px] font-bold text-brand-accent uppercase">Projected</span>
-              </div>
+               <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-brand-neon" />
+                  <span className="text-[9px] font-mono text-brand-neon uppercase">Projected Reach</span>
+               </div>
             </div>
           </div>
-          <div className="h-[300px] w-full">
+          <div className="h-[320px] w-full relative z-10">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={velocityData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} axisLine={false} tickLine={false} tickMargin={10} />
-                <YAxis stroke="#94a3b8" fontSize={10} axisLine={false} tickLine={false} tickMargin={10} domain={[0, 100]} />
+              <AreaChart data={velocityData}>
+                <defs>
+                  <linearGradient id="colorVel" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#00ff00" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#00ff00" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis dataKey="name" stroke="rgba(255,255,255,0.2)" fontSize={9} axisLine={false} tickLine={false} />
+                <YAxis stroke="rgba(255,255,255,0.2)" fontSize={9} axisLine={false} tickLine={false} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '12px' }}
+                  contentStyle={{ backgroundColor: '#020202', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0px' }}
+                  itemStyle={{ fontSize: '10px', fontFamily: 'monospace' }}
                 />
-                <Line type="monotone" dataKey="velocity" stroke="#cbd5e1" strokeWidth={2} dot={false} strokeDasharray="5 5" />
-                <Line type="monotone" dataKey="projected" stroke="#2563eb" strokeWidth={3} dot={{ r: 4, fill: '#2563eb' }} activeDot={{ r: 6 }} />
-              </LineChart>
+                <Area type="monotone" dataKey="projected" stroke="#00ff00" fillOpacity={1} fill="url(#colorVel)" strokeWidth={2} />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="hypr-card p-10 flex flex-col justify-between bg-white border-slate-200">
-          <h5 className="font-bold mb-10 flex items-center gap-3 text-xs uppercase tracking-[0.3em] text-slate-400">
-            <Share2 className="w-4 h-4 text-brand-accent" />
-            Engagement Mix
+        <div className="hypr-card p-10 flex flex-col justify-between bg-brand-surface border-white/5">
+          <div className="scanline opacity-10" />
+          <h5 className="font-bold mb-10 flex items-center gap-3 text-[10px] font-mono uppercase tracking-[0.3em] text-white/40">
+            Signal Mix
           </h5>
-          <div className="h-[280px] w-full min-h-[250px]">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+          <div className="h-[240px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={engagementData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={70}
-                  outerRadius={95}
-                  paddingAngle={10}
+                  cx="50%" cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={8}
                   dataKey="value"
                   stroke="none"
                 >
-                  {engagementData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} className="focus:outline-none" />
-                  ))}
+                  <Cell fill="#00ff00" />
+                  <Cell fill="#00e5ff" />
                 </Pie>
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px' }}
+                   contentStyle={{ backgroundColor: '#020202', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0px' }}
                 />
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="grid grid-cols-2 gap-4 mt-8">
+          <div className="space-y-4 mt-10">
              {engagementData.map((d, i) => (
-               <div key={i} className="flex flex-col gap-2 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                 <div className="flex items-center gap-2">
-                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i] }} />
-                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{d.name}</span>
+               <div key={i} className="flex justify-between items-center p-4 bg-white/[0.02] border border-white/5">
+                 <div className="flex items-center gap-3">
+                    <div className="w-1.5 h-1.5" style={{ backgroundColor: i === 0 ? '#00ff00' : '#00e5ff' }} />
+                    <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest">{d.name}</span>
                  </div>
-                 <p className="text-xl font-display font-medium italic text-slate-800">{d.value.toLocaleString()}</p>
+                 <span className="text-xl font-display italic text-white">{d.value.toLocaleString()}</span>
                </div>
              ))}
           </div>
         </div>
       </div>
 
-      <div className="hypr-card p-10 space-y-10 bg-white border-slate-200">
-        <div className="flex justify-between items-center">
-           <h5 className="font-bold flex items-center gap-3 text-xs uppercase tracking-[0.3em] text-slate-400">High-Velocity Signals</h5>
-           <button className="text-[10px] font-bold text-brand-accent uppercase tracking-widest hover:underline">Full Asset Audit</button>
+      <div className="hypr-card p-12 bg-brand-surface border-white/5 space-y-10 relative overflow-hidden">
+        <div className="scanline opacity-10" />
+        <div className="flex justify-between items-center relative z-10">
+           <h5 className="text-[10px] font-mono text-white/40 uppercase tracking-[0.4em] font-bold">Trending Nodes</h5>
+           <Sparkles className="w-4 h-4 text-brand-neon" />
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-          {["marketing", "ai", "saas", "influencer", "growth", "tech", "socialmedia", "entrepreneur"].map((tag, i) => (
-             <motion.div 
-               whileHover={{ scale: 1.05 }}
-               key={i} 
-               className="p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:border-brand-accent/20 transition-all cursor-default text-center group"
-             >
-               <p className="text-xs font-mono text-slate-600 group-hover:text-brand-accent transition-colors">#{tag}</p>
-               <div className="mt-3 pt-3 border-t border-slate-100">
-                 <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Reach</p>
-                 <p className="text-xs font-bold text-slate-500">{(Math.random() * 20 + 2).toFixed(1)}k</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 relative z-10">
+          {["marketing", "ai", "viral", "creative", "growth", "tech", "social", "nexus"].map((tag, i) => (
+             <div key={i} className="p-4 bg-white/[0.02] border border-white/5 text-center group hover:border-brand-neon/30 transition-all cursor-default">
+               <p className="text-[10px] font-mono text-white/30 group-hover:text-brand-neon transition-colors">#{tag}</p>
+               <div className="mt-4 pt-4 border-t border-white/5">
+                 <p className="text-sm font-display italic text-white">{(Math.random() * 20 + 2).toFixed(1)}K</p>
                </div>
-             </motion.div>
+             </div>
           ))}
         </div>
       </div>
 
-      {/* Growth Suggestions & Upgrade Prompt */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        <div className="lg:col-span-2 hypr-card p-10 space-y-10 bg-white border-slate-200">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-brand-accent/10 flex items-center justify-center border border-brand-accent/20">
-              <TrendingUp className="w-6 h-6 text-brand-accent" />
-            </div>
-            <div>
-              <h3 className="text-2xl font-display font-bold italic tracking-tighter text-slate-900">Growth <span className="text-brand-accent">Multipliers</span></h3>
-              <p className="text-slate-500 text-sm">Strategic recommendations based on your current performance index.</p>
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 hypr-card p-12 space-y-12 bg-brand-surface border-brand-neon/10">
+          <div className="scanline opacity-10" />
+          <div className="flex items-center gap-4 relative z-10">
+             <div className="w-1.5 h-8 bg-brand-neon" />
+             <div>
+               <h3 className="text-4xl font-display uppercase italic tracking-tighter text-white">Strategic <span className="text-brand-neon">Multipliers</span></h3>
+               <p className="text-white/40 text-[10px] font-mono uppercase tracking-widest italic">neural directives for expansion</p>
+             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <SuggestionItem 
-              title="Carousel Dominance"
-              desc="Your visual content has 3.4x more reach capacity than text-only assets. Shift strategy to 70% carousel posts."
-            />
-            <SuggestionItem 
-              title="Optimal Deployment"
-              desc="Signals show peak connectivity at 6:45 PM EST. Schedule next 3 posts within this window for 40% more engagement."
-            />
-            <SuggestionItem 
-              title="Signal Saturation"
-              desc="Cluster #SaaS is reaching saturation. Pivot to #NeuralGrowth to capture untapped audience velocity."
-            />
-            <SuggestionItem 
-              title="Competitor Gap"
-              desc="Top competitors are leveraging 'Day in life' hooks. Neural logs suggest a 22% engagement boost for this theme."
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+            <SuggestionItem title="Pattern Interrupt" desc="Switch content headers to negative framing for 24% higher signal acquisition." />
+            <SuggestionItem title="Context Anchor" desc="Link script forage to Explore Lab signals. Current nexus affinity is 82%." />
+            <SuggestionItem title="Saturation Alert" desc="Node #Marketing is nearing threshold. Pivot to #NeuralGrowth for tap potential." />
+            <SuggestionItem title="Peak execution" desc="Optimal deployment window opening in 45m. Matrix ready for broadcast." />
           </div>
         </div>
 
-        <div className={cn(
-          "hypr-card p-10 flex flex-col justify-between overflow-hidden relative border-none shadow-2xl",
-          isElite ? "bg-emerald-50 text-emerald-900" : "bg-brand-accent/10 text-slate-900"
-        )}>
-          <div className={cn(
-            "absolute top-0 right-0 w-48 h-48 rounded-full blur-[80px] -z-10 translate-x-1/2 -translate-y-1/2",
-            isElite ? "bg-emerald-200" : "bg-brand-accent/30"
-          )} />
-          
-          <div className="space-y-8 relative z-10">
-            <div className={cn(
-              "w-14 h-14 rounded-2xl flex items-center justify-center border shadow-xl bg-white",
-              isElite 
-                ? "border-emerald-100 shadow-emerald-200/50" 
-                : "border-brand-accent/20 shadow-brand-accent/20"
-            )}>
-              {isElite ? <ShieldCheck className="w-8 h-8 text-emerald-600" /> : <Cpu className="w-8 h-8 text-brand-accent" />}
-            </div>
-            <div className="space-y-3">
-              <h4 className="text-2xl font-display font-bold italic tracking-tight">HyprTags <span className={cn(isElite ? "text-emerald-600" : "text-brand-accent")}>{isElite ? 'Elite Core' : 'Elite'}</span></h4>
-              <p className={cn("text-base leading-relaxed font-light italic", isElite ? "text-emerald-700" : "text-slate-600")}>
-                {isElite 
-                  ? "All neural capacity expansion modules are active. Automated synchronization and viral prediction systems are operational."
-                  : "Unlock the full capacity of our Neural Engine. Predictive trends, automated peak-hour posting, and multi-org insights."}
-              </p>
-            </div>
-            
-            <ul className="space-y-4">
-              <li className={cn("flex items-center gap-3 text-xs font-bold uppercase tracking-widest italic leading-none", isElite ? "text-emerald-600/70" : "text-slate-400")}>
-                <div className={cn("w-1.5 h-1.5 rounded-full", isElite ? "bg-emerald-500" : "bg-brand-accent")} />
-                {isElite ? "Pattern Prediction: ACTIVE" : "Advanced Pattern Prediction"}
-              </li>
-              <li className={cn("flex items-center gap-3 text-xs font-bold uppercase tracking-widest italic leading-none", isElite ? "text-emerald-600/70" : "text-slate-400")}>
-                <div className={cn("w-1.5 h-1.5 rounded-full", isElite ? "bg-emerald-500" : "bg-brand-accent")} />
-                {isElite ? "Strategic Scans: UNLIMITED" : "Unlimited Strategic Scans"}
-              </li>
-              <li className={cn("flex items-center gap-3 text-xs font-bold uppercase tracking-widest italic leading-none", isElite ? "text-emerald-600/70" : "text-slate-400")}>
-                <div className={cn("w-1.5 h-1.5 rounded-full", isElite ? "bg-emerald-500" : "bg-brand-accent")} />
-                {isElite ? "Neural Bridging: ON" : "API Context Injection"}
-              </li>
-            </ul>
-          </div>
-          
-          <button 
-            onClick={() => !isElite && (window.location.href='/upgrade')}
-            className={cn(
-              "w-full h-16 mt-12 rounded-2xl text-xs font-bold uppercase tracking-[0.2em] transition-all shadow-xl",
-              isElite 
-                ? "bg-emerald-100 text-emerald-700 border border-emerald-200 cursor-default" 
-                : "bg-brand-accent text-white hover:bg-brand-accent/90"
-            )}
-          >
-            {isElite ? 'Neural Matrix Initialized' : 'Upgrade for $9 / mo'}
-          </button>
+        <div className="hypr-card p-12 flex flex-col justify-between bg-brand-neon/5 border-brand-neon/20 group relative overflow-hidden">
+           <div className="scanline opacity-20" />
+           <div className="space-y-10 relative z-10">
+              <div className="w-12 h-12 bg-brand-neon flex items-center justify-center">
+                 <Cpu className="w-6 h-6 text-brand-void" />
+              </div>
+              <div className="space-y-4">
+                 <h4 className="text-3xl font-display uppercase italic tracking-tighter text-white">Elite <span className="text-brand-neon">Matrix</span></h4>
+                 <p className="text-xs font-light italic text-white/60 leading-relaxed">
+                   Synchronize with the global curiosity matrix. Automated trending, predictive reach, and unlimited neural forge cycles.
+                 </p>
+              </div>
+              <div className="space-y-3">
+                 {[1,2,3].map(i => (
+                   <div key={i} className="flex items-center gap-3">
+                      <div className="w-1 h-1 bg-brand-neon" />
+                      <span className="text-[8px] font-mono text-white/40 uppercase tracking-widest">Protocol-0{i} active</span>
+                   </div>
+                 ))}
+              </div>
+           </div>
+           
+           <button className="w-full py-6 mt-12 bg-white text-brand-void font-display uppercase italic tracking-widest text-xs hover:bg-brand-neon transition-all relative z-10">
+              Expansion Required
+           </button>
         </div>
       </div>
     </div>
@@ -348,12 +299,9 @@ export default function Analytics() {
 
 function SuggestionItem({ title, desc }: { title: string, desc: string }) {
   return (
-    <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl hover:border-brand-accent/20 transition-all group shadow-sm">
-      <h4 className="text-sm font-bold text-slate-800 mb-2 group-hover:text-brand-accent transition-colors flex items-center gap-2">
-        <div className="w-1.5 h-1.5 rounded-full bg-brand-accent" />
-        {title}
-      </h4>
-      <p className="text-xs text-slate-500 leading-relaxed font-light">{desc}</p>
+    <div className="p-8 bg-white/[0.02] border border-white/5 hover:border-brand-neon/20 transition-all group group-hover:bg-brand-neon/[0.02]">
+      <h4 className="text-[10px] font-mono text-brand-neon uppercase tracking-[0.3em] mb-4 font-bold italic">{title}</h4>
+      <p className="text-xs text-white/50 leading-relaxed font-light italic">"{desc}"</p>
     </div>
   );
 }
@@ -361,16 +309,17 @@ function SuggestionItem({ title, desc }: { title: string, desc: string }) {
 function MetricCard({ label, value, growth, icon: Icon, isAccent }: any) {
   return (
     <div className={cn(
-      "hypr-card p-8 group relative overflow-hidden bg-white border-slate-200 shadow-sm",
-      isAccent && "border-brand-accent/20 bg-brand-accent/[0.02]"
+      "hypr-card p-10 group relative overflow-hidden bg-brand-surface border-white/5",
+      isAccent && "border-brand-neon/20"
     )}>
-      <div className="absolute -right-4 -bottom-4 opacity-[0.05] group-hover:opacity-[0.08] group-hover:scale-110 transition-all">
-         <Icon className="w-32 h-32" />
+      <div className="scanline opacity-10" />
+      <div className="absolute -right-4 -bottom-4 opacity-[0.02] group-hover:scale-110 transition-all">
+         <Icon className="w-40 h-40 text-brand-neon" />
       </div>
-      <p className={cn("text-[10px] font-bold uppercase tracking-widest mb-4", isAccent ? "text-brand-accent" : "text-slate-400")}>{label}</p>
-      <div className="flex items-end justify-between">
-        <h4 className="text-4xl font-display font-medium italic tracking-tighter text-slate-900">{value}</h4>
-        <span className={cn("text-xs font-bold font-mono px-2 py-0.5 rounded-lg border", isAccent ? "bg-brand-accent/20 border-brand-accent/20 text-brand-accent" : "bg-emerald-100 border-emerald-200 text-emerald-600 shadow-sm")}>
+      <p className="text-[9px] font-mono text-white/30 uppercase tracking-[0.4em] mb-4">{label}</p>
+      <div className="flex items-end justify-between relative z-10">
+        <h4 className="text-5xl font-display italic text-white">{value}</h4>
+        <span className={cn("text-[9px] font-mono px-2 py-1 border", isAccent ? "bg-brand-neon/10 border-brand-neon text-brand-neon" : "bg-white/5 border-white/10 text-white/40")}>
            {growth}
          </span>
       </div>

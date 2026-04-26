@@ -266,7 +266,7 @@ export default function VideoGenerator() {
     if (!user) return;
     setIsSaving(true);
     try {
-      await addDoc(collection(db, "generations"), {
+      await addDoc(collection(db, "content"), {
         userId: user.uid,
         type: 'video',
         content: p,
@@ -286,7 +286,7 @@ export default function VideoGenerator() {
       });
       setIsSaved(true);
     } catch (error) {
-      handleFirestoreError(error, 'create', 'generations');
+      handleFirestoreError(error, 'create', 'content');
     } finally {
       setIsSaving(false);
     }
@@ -296,7 +296,7 @@ export default function VideoGenerator() {
     if (!user || !videoData) return;
     setIsPlanning(true);
     try {
-      await addDoc(collection(db, "scheduledPosts"), {
+      await addDoc(collection(db, "posts"), {
         userId: user.uid,
         content: videoTitle || videoData.title || prompt,
         status: 'idea',
@@ -306,7 +306,7 @@ export default function VideoGenerator() {
       });
       setIsPlanned(true);
     } catch (error) {
-      handleFirestoreError(error, 'create', 'scheduledPosts');
+      handleFirestoreError(error, 'create', 'posts');
     } finally {
       setIsPlanning(false);
     }

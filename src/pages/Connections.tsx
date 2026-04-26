@@ -89,7 +89,7 @@ export default function Connections() {
       'Finding your profile...',
       'Verifying handle...',
       'Confirming account active...',
-      'Linking to ViralFlow...'
+      'Linking to HyprTags...'
     ];
 
     for (const status of statuses) {
@@ -232,7 +232,7 @@ export default function Connections() {
                 
                 <div className="space-y-2">
                   <h3 className="text-3xl font-display font-bold italic text-slate-900">Connect <span className="text-brand-accent">{verifyingPlatform.name}</span></h3>
-                  <p className="text-slate-500 text-sm">Securely link your account to ViralFlow.</p>
+                  <p className="text-slate-500 text-sm">Securely link your account to HyprTags.</p>
                 </div>
 
                 <AnimatePresence mode="wait">
@@ -242,7 +242,7 @@ export default function Connections() {
                       className="space-y-6"
                     >
                       <p className="text-sm text-slate-500 italic px-4">
-                        "ViralFlow needs permission to view your reach metrics to help you grow faster."
+                        "HyprTags needs permission to view your reach metrics to help you grow faster."
                       </p>
                       <button 
                         onClick={() => setStep('input')}

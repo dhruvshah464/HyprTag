@@ -73,7 +73,7 @@ export default function Settings() {
     try {
       if (global && isAdmin) {
         // Global reset logic
-        const collections = ['scheduledPosts', 'generatedHashtags', 'generatedVideos', 'automationFlows', 'competitors'];
+        const collections = ['posts', 'content', 'competitorInsights', 'insights', 'earnings'];
         for (const collName of collections) {
           const q = query(collection(db, collName));
           const snapshot = await getDocs(q);
@@ -83,7 +83,7 @@ export default function Settings() {
         }
       } else {
         // User-specific reset
-        const collections = ['scheduledPosts', 'generatedHashtags', 'generatedVideos', 'automationFlows'];
+        const collections = ['posts', 'content', 'competitorInsights'];
         for (const collName of collections) {
           const q = query(collection(db, collName), where("userId", "==", user.uid));
           const snapshot = await getDocs(q);

@@ -26,7 +26,7 @@ export default function Landing() {
             <div className="w-10 h-10 bg-brand-accent rounded-xl flex items-center justify-center shadow-lg shadow-brand-accent/20">
               <Rocket className="w-6 h-6 text-white" />
             </div>
-            <span className="text-2xl font-display font-bold tracking-tighter italic">Viral<span className="text-brand-accent">Flow</span></span>
+            <span className="text-2xl font-display font-bold tracking-tighter italic">Hypr<span className="text-brand-accent">Tags</span></span>
           </div>
           <div className="hidden md:flex items-center gap-8">
             <Link to="/login" className="text-sm font-bold text-slate-600 hover:text-slate-950 transition-colors uppercase tracking-widest">Sign In</Link>
@@ -223,7 +223,7 @@ export default function Landing() {
             </Link>
          </div>
          <div className="pt-32 border-t border-slate-100 opacity-20 text-[10px] font-bold uppercase tracking-[0.5em]">
-            ViralFlow © 2026 // Outcome Over Output
+            HyprTags © 2026 // Outcome Over Output
          </div>
       </footer>
     </div>

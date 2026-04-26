@@ -14,45 +14,36 @@ import {
   ImagePlus,
   ArrowRight,
   CheckCircle2,
-  ShieldAlert
+  ShieldAlert,
+  Rocket
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { generateHashtags, AnalysisResponse } from '../lib/gemini';
 import { db, auth, handleFirestoreError } from '../lib/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getCountFromServer } from 'firebase/firestore';
 import { useAuth } from '../lib/auth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { EliteUpgradeModal } from '../components/EliteUpgradeModal';
+import { geminiService } from '../services/geminiService';
+import { contentService } from '../services/contentService';
 
 export default function Generator() {
-  const { isElite, user } = useAuth();
+  const { user } = useAuth();
   const [content, setContent] = useState('');
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<AnalysisResponse | null>(null);
-  const [copying, setCopying] = useState<string | null>(null);
+  const [result, setResult] = useState<any | null>(null);
   const [scheduling, setScheduling] = useState(false);
   const [scheduleDate, setScheduleDate] = useState('');
-  const [usageCount, setUsageCount] = useState<number | null>(null);
-  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
-  const [selectedHashtags, setSelectedHashtags] = useState<string[]>([]);
-  const [showTooltip, setShowTooltip] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
-    async function checkUsage() {
-      if (!user || isElite) return;
-      try {
-        const q = query(collection(db, "generations"), where("userId", "==", user.uid));
-        const snapshot = await getCountFromServer(q);
-        setUsageCount(snapshot.data().count);
-      } catch (e) {
-        console.error("Error checking usage:", e);
-      }
+    if (location.state?.initialIdea) {
+      setContent(location.state.initialIdea);
     }
-    checkUsage();
-  }, [user, isElite]);
+  }, [location.state]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -65,32 +56,17 @@ export default function Generator() {
 
   const handleAnalyze = async () => {
     if (!content && !image) return;
-    
-    if (!isElite && usageCount !== null && usageCount >= 3) {
-      setUpgradeModalOpen(true);
-      return;
-    }
-
     setLoading(true);
     try {
-      const data = await generateHashtags(content, image || undefined);
-      setResult(data);
+      const data = await geminiService.analyzeViralPotential(content);
+      setResult({
+        summary: data.analysis,
+        score: data.score,
+        hashtags: data.hashtags || []
+      });
       
-      if (auth.currentUser) {
-        try {
-          await addDoc(collection(db, "generations"), {
-            userId: auth.currentUser.uid,
-            content: content || "Image Analysis",
-            result: data,
-            createdAt: serverTimestamp(),
-            reach: 0,
-            likes: 0,
-            comments: 0
-          });
-          if (usageCount !== null) setUsageCount(prev => (prev || 0) + 1);
-        } catch (e) {
-          handleFirestoreError(e, 'create', 'generations');
-        }
+      if (user) {
+        await contentService.generateAndSave(user.uid, content);
       }
     } catch (error) {
       console.error(error);
@@ -100,161 +76,71 @@ export default function Generator() {
   };
 
   const handleSchedule = async () => {
-    if (!auth.currentUser || !scheduleDate) return;
-    const tagsToSchedule = selectedHashtags.length > 0 
-      ? selectedHashtags 
-      : (result?.results.flatMap(r => r.hashtags) || []);
-
+    if (!user || !scheduleDate) return;
     try {
-      await addDoc(collection(db, "scheduledPosts"), {
-        userId: auth.currentUser.uid,
-        content,
-        hashtags: tagsToSchedule,
-        platforms: ["Instagram", "Twitter"],
+      await addDoc(collection(db, "posts"), {
+        userId: user.uid,
+        content: content,
+        hashtags: result?.hashtags || [],
+        platforms: ["Instagram", "TikTok"],
         scheduledTime: new Date(scheduleDate).toISOString(),
-        status: "pending",
-        createdAt: serverTimestamp()
+        status: "scheduled",
+        createdAt: serverTimestamp(),
       });
       setScheduling(false);
-      setSelectedHashtags([]);
-      alert("Post scheduled successfully!");
+      navigate('/planner');
     } catch (e) {
-      handleFirestoreError(e, 'create', 'scheduledPosts');
+      handleFirestoreError(e, 'create', 'posts');
     }
   };
 
-  const toggleHashtag = (tag: string) => {
-    const formattedTag = tag.startsWith('#') ? tag : `#${tag}`;
-    setSelectedHashtags(prev => {
-      if (prev.includes(formattedTag)) {
-        return prev.filter(t => t !== formattedTag);
-      }
-      if (prev.length >= 5) {
-        return prev;
-      }
-      return [...prev, formattedTag];
-    });
-  };
-
-  const copyAllTags = () => {
-    if (!result) return;
-    const allTags = result.results.flatMap(r => r.hashtags).map(t => t.startsWith('#') ? t : `#${t}`).join(' ');
-    navigator.clipboard.writeText(allTags);
-    setCopying('all');
-    setTimeout(() => setCopying(null), 2000);
-  };
-
-  const copyTags = (tags: string[]) => {
-    const text = tags.join(' ');
-    navigator.clipboard.writeText(text);
-    setCopying(text);
-    setTimeout(() => setCopying(null), 2000);
-  };
-
   return (
-    <div className="space-y-16 py-10 max-w-6xl mx-auto">
-      {/* Hero Section */}
-      <div className="max-w-3xl mx-auto text-center space-y-8">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={cn(
-            "inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-widest",
-            isElite ? "bg-emerald-50 border-emerald-100 text-emerald-500" : "bg-brand-accent/10 border-brand-accent/20 text-brand-accent"
-          )}
-        >
-          {isElite ? <CheckCircle2 className="w-3 h-3 text-emerald-500" /> : <Sparkles className="w-3 h-3 text-brand-accent" />}
-          {isElite ? 'Elite Mode Active' : 'Viral Generator'}
-        </motion.div>
-        
-        <div className="space-y-4">
-          <h1 className="text-6xl md:text-8xl font-display font-bold leading-[0.85] tracking-tighter text-slate-900 px-4">
-            Get more <br /> <span className="text-brand-accent italic">Reach.</span>
-          </h1>
-          <p className="text-lg md:text-xl text-slate-500 max-w-xl mx-auto font-light leading-relaxed font-sans italic">
-            "ViralFlow tells you exactly what hashtags and captions will get your content in front of more people."
-          </p>
-
-          {!isElite && usageCount !== null && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="pt-4"
-            >
-              <div className="inline-flex flex-col items-center gap-2">
-                 <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-300">
-                    Daily Usage: <span className={cn(usageCount >= 3 ? "text-red-500" : "text-brand-accent")}>{usageCount}/3</span>
-                 </div>
-                 <div className="w-48 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div 
-                      className={cn("h-full transition-all duration-500", usageCount >= 3 ? "bg-red-500" : "bg-brand-accent")}
-                      style={{ width: `${Math.min((usageCount / 3) * 100, 100)}%` }}
-                    />
-                 </div>
-              </div>
-            </motion.div>
-          )}
+    <div className="max-w-4xl mx-auto space-y-12">
+      <div className="space-y-6">
+        <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-neon/10 border border-brand-neon/30 text-[9px] font-mono uppercase tracking-[0.3em] text-brand-neon">
+          Nexus-Forge // Script Generation
+        </div>
+        <div className="space-y-2">
+           <h1 className="text-6xl md:text-8xl font-display uppercase italic leading-none tracking-tighter text-white">
+             Script <span className="text-brand-neon">Forge</span>
+           </h1>
+           <p className="text-white/40 text-sm font-mono lowercase tracking-[0.2em] italic">convert vision into viral structure</p>
         </div>
       </div>
 
-      {/* Input Area */}
       <motion.div 
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.1 }}
-        className="max-w-4xl mx-auto border border-slate-100 rounded-[3rem] shadow-sm relative overflow-hidden group bg-white p-12"
+        className="hypr-card p-10 space-y-10 group bg-brand-surface border-white/5"
       >
-        <div className="space-y-10">
+        <div className="space-y-12 relative z-10">
           <div className="relative text-left">
             <textarea
+              autoFocus
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="What is your content about?"
-              className="w-full bg-transparent border-b border-slate-200 px-0 py-4 text-2xl md:text-3xl font-medium outline-none focus:border-brand-accent/30 transition-all placeholder:text-slate-300 min-h-[120px] resize-none font-display italic tracking-tighter text-slate-800"
+              placeholder="What's the core realization or hook idea?"
+              className="w-full bg-transparent border-b border-white/10 px-0 py-6 text-3xl font-display uppercase italic leading-tight outline-none focus:border-brand-neon/50 transition-all placeholder:text-white/10 text-white"
+              rows={3}
             />
-            {content && (
-              <button 
-                onClick={() => setContent('')}
-                className="absolute right-0 top-6 p-2 text-slate-300 hover:text-slate-600 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            )}
           </div>
 
           <div className="flex flex-col md:flex-row gap-6 items-center">
-            {/* Visual Context Area */}
-            <div className="flex-grow w-full relative">
-               <label 
-                 className="flex items-center justify-center gap-4 w-full h-32 border-2 border-dashed border-slate-100 rounded-[2rem] hover:border-brand-accent/20 hover:bg-slate-50/50 cursor-pointer transition-all group/upload relative overflow-hidden"
-               >
-                  <input 
-                    type="file" 
-                    className="hidden" 
-                    ref={fileInputRef}
-                    onChange={handleImageUpload}
-                    accept="image/*"
-                  />
+            <div className="flex-grow w-full">
+               <label className="flex items-center justify-center gap-4 w-full h-32 border border-dashed border-white/10 hover:border-brand-neon/30 hover:bg-white/[0.02] cursor-pointer transition-all group/upload relative overflow-hidden">
+                  <input type="file" className="hidden" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" />
                   {image ? (
                     <>
-                      <img src={image} alt="Context" className="absolute inset-0 w-full h-full object-cover grayscale opacity-40 mix-blend-multiply" />
-                      <div className="relative z-10 flex items-center gap-3 bg-white/90 px-4 py-2 rounded-xl backdrop-blur-md border border-brand-accent/20 shadow-lg">
-                         <CheckCircle2 className="w-5 h-5 text-brand-accent" />
-                         <span className="font-bold text-xs uppercase tracking-widest text-brand-accent">Image Ready</span>
+                      <img src={image} alt="Context" className="absolute inset-0 w-full h-full object-cover opacity-20" />
+                      <div className="relative z-10 flex items-center gap-3 bg-brand-surface/80 px-4 py-2 border border-brand-neon/20 backdrop-blur-md">
+                         <Check className="w-4 h-4 text-brand-neon" />
+                         <span className="font-mono text-[9px] uppercase tracking-widest text-brand-neon">Asset Synced</span>
                       </div>
-                      <button 
-                        onClick={(e) => { e.preventDefault(); setImage(null); }}
-                        className="absolute top-4 right-4 z-20 p-2 bg-white/90 rounded-full border border-slate-200 hover:bg-red-50 text-slate-500 hover:text-red-500 transition-colors shadow-sm"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
                     </>
                   ) : (
-                    <div className="flex flex-col items-center gap-3 text-left">
-                       <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center group-hover/upload:scale-110 transition-transform">
-                          <ImagePlus className="w-5 h-5 text-slate-400" />
-                       </div>
-                       <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Add Image for Better Results</span>
+                    <div className="flex flex-col items-center gap-2">
+                       <Upload className="w-6 h-6 text-white/20 group-hover/upload:text-brand-neon transition-all" />
+                       <span className="text-[9px] font-mono uppercase tracking-[0.4em] text-white/20 group-hover/upload:text-white transition-all">Upload Visual Matrix</span>
                     </div>
                   )}
                </label>
@@ -263,16 +149,14 @@ export default function Generator() {
             <button
               onClick={() => handleAnalyze()}
               disabled={loading || (!content && !image)}
-              className="w-full md:w-32 h-32 bg-brand-accent text-white rounded-[2rem] group relative overflow-hidden flex flex-col items-center justify-center gap-3 shadow-xl shadow-brand-accent/20 hover:scale-105 transition-all disabled:opacity-50"
+              className="w-full md:w-32 h-32 hypr-btn hypr-btn-primary flex flex-col items-center justify-center gap-3 p-0"
             >
               {loading ? (
                 <Loader2 className="w-8 h-8 animate-spin" />
               ) : (
                 <>
-                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <ArrowRight className="w-6 h-6" />
-                  </div>
-                  <span className="text-[10px] font-bold uppercase tracking-widest">Go Viral</span>
+                  <Rocket className="w-8 h-8" />
+                  <span className="text-[8px] font-mono uppercase tracking-[0.2em] font-bold">Initiate</span>
                 </>
               )}
             </button>
@@ -280,141 +164,74 @@ export default function Generator() {
         </div>
       </motion.div>
 
-      {/* Results Section */}
       <AnimatePresence>
         {result && (
           <motion.div 
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-12 max-w-6xl mx-auto"
+            className="space-y-12"
           >
-               <div className="flex flex-col md:flex-row items-center justify-between gap-6 px-4 text-left">
-                <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
-                   <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center border border-slate-200 shadow-sm">
-                         <BarChart3 className="w-6 h-6 text-brand-accent" />
-                      </div>
-                      <p className="text-lg text-slate-600 font-light italic leading-relaxed max-w-xl">
-                         {result.summary}
-                      </p>
+             <div className="hypr-card border-brand-neon/20 p-10 relative group">
+                <div className="scanline opacity-10" />
+                <div className="flex flex-col md:flex-row justify-between gap-10 relative z-10">
+                   <div className="space-y-4 max-w-xl">
+                      <p className="text-[9px] font-mono text-brand-neon uppercase tracking-widest">Forged Strategy</p>
+                      <p className="text-xl font-light italic text-white/80 leading-relaxed italic">"{result.summary}"</p>
                    </div>
-                </div>
-                <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
-                  <button 
-                    onClick={copyAllTags}
-                    className="h-12 px-6 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all whitespace-nowrap shadow-sm"
-                  >
-                     {copying === 'all' ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-slate-400" />}
-                     {copying === 'all' ? 'Copied' : 'Copy All'}
-                  </button>
-                  <button 
-                    onClick={() => setScheduling(true)}
-                    className="h-12 px-8 bg-brand-accent text-white text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 shadow-xl shadow-brand-accent/10 whitespace-nowrap rounded-2xl hover:scale-105 transition-all"
-                  >
-                     <Calendar className="w-4 h-4" /> 
-                     {selectedHashtags.length > 0 ? `Schedule Selection (${selectedHashtags.length})` : 'Schedule All'}
-                  </button>
+                   <div className="flex flex-col items-center md:items-end justify-center gap-4">
+                      <div className="text-center md:text-right">
+                        <p className="text-[9px] font-mono text-white/30 uppercase">Yield Score</p>
+                        <p className="text-5xl font-display italic text-brand-neon">{result.score}%</p>
+                      </div>
+                      <button 
+                        onClick={() => setScheduling(true)}
+                        className="hypr-btn hypr-btn-primary bg-white text-brand-void hover:bg-brand-neon hover:text-brand-void"
+                      >
+                         Sync to Matrix
+                      </button>
+                   </div>
                 </div>
              </div>
 
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-               {result.results.map((res, i) => (
-                 <motion.div 
-                   key={i} 
-                   initial={{ opacity: 0, y: 20 }}
-                   animate={{ opacity: 1, y: 0 }}
-                   transition={{ delay: i * 0.1 }}
-                   className="p-8 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all group"
-                 >
-                   <div className="flex justify-between items-center mb-8">
-                     <div className="space-y-1">
-                       <h3 className="text-xl font-bold tracking-tight text-slate-900 text-left">{res.category}</h3>
-                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-left">Viral Score</p>
-                     </div>
-                     <div className="flex flex-col items-end">
-                       <span className="text-3xl font-display font-bold text-slate-800">{res.trendingScore}%</span>
-                       <div className="w-20 h-1 bg-slate-100 rounded-full mt-2 overflow-hidden">
-                          <motion.div 
-                            initial={{ width: 0 }}
-                            animate={{ width: `${res.trendingScore}%` }}
-                            className="h-full bg-brand-accent transition-all duration-1000" 
-                          />
-                       </div>
-                     </div>
-                   </div>
-                   <div className="flex flex-wrap gap-2.5 mb-10 min-h-[80px]">
-                     {res.hashtags.map((tag, j) => {
-                       const formattedTag = tag.startsWith('#') ? tag : `#${tag}`;
-                       const isSelected = selectedHashtags.includes(formattedTag);
-                       return (
-                        <span 
-                          key={j} 
-                          onClick={() => toggleHashtag(tag)}
-                          className={cn(
-                            "text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer",
-                            isSelected 
-                              ? "bg-brand-accent text-white border-brand-accent shadow-md shadow-brand-accent/20" 
-                              : "text-slate-600 hover:text-brand-accent bg-slate-50 border-slate-200 hover:border-brand-accent/20"
-                          )}
-                        >
-                          {formattedTag}
-                        </span>
-                       );
-                     })}
-                   </div>
-                   <button 
-                     onClick={() => copyTags(res.hashtags)}
-                     className="w-full h-11 rounded-xl border border-slate-100 bg-slate-50 font-bold text-[10px] uppercase tracking-widest text-slate-400 hover:text-brand-accent hover:bg-white hover:border-brand-accent/20 transition-all flex items-center justify-center gap-2 group/copy"
-                   >
-                      {copying === res.hashtags.join(' ') ? (
-                        <>Copied <Check className="w-3 h-3 text-emerald-500" /></>
-                      ) : (
-                        <>Copy Group <Copy className="w-3 h-3 opacity-0 group-hover/copy:opacity-100 transition-all" /></>
-                      )}
-                   </button>
-                 </motion.div>
-               ))}
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {result.hashtags.map((tag: string, i: number) => (
+                  <div key={i} className="px-6 py-4 bg-brand-surface border border-white/5 text-sm font-mono text-white/40 italic flex justify-between items-center group hover:border-brand-neon/30 transition-all">
+                     <span>#{tag.replace('#', '')}</span>
+                     <Sparkles className="w-3 h-3 text-white/10 group-hover:text-brand-neon transition-colors" />
+                  </div>
+                ))}
              </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Scheduling Modal */}
       <AnimatePresence>
         {scheduling && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xl">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }} 
-              animate={{ opacity: 1, scale: 1, y: 0 }} 
-              exit={{ opacity: 0, scale: 0.9, y: 20 }} 
-              className="bg-white rounded-[3rem] max-w-md w-full border border-slate-100 shadow-2xl p-12"
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-brand-void/90 backdrop-blur-md">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+              className="bg-brand-surface border border-white/10 max-w-md w-full p-12 relative overflow-hidden"
             >
-              <div className="flex justify-between items-center mb-10">
-                 <h3 className="font-display font-bold text-3xl tracking-tighter text-slate-900 text-left">Schedule Post</h3>
-                 <button onClick={() => setScheduling(false)} className="p-2 text-slate-300 hover:text-slate-600 transition-colors">
-                    <X className="w-6 h-6" />
-                 </button>
+              <div className="scanline opacity-10" />
+              <div className="flex justify-between items-center mb-10 relative z-10">
+                 <h3 className="text-4xl font-display font-bold italic uppercase text-white">Sync <span className="text-brand-neon">Time</span></h3>
+                 <button onClick={() => setScheduling(false)} className="text-white/20 hover:text-white transition-colors"><X className="w-6 h-6" /></button>
               </div>
-              <div className="space-y-8">
-                <div className="space-y-4 text-left">
-                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Schedule Time</label>
-                   <input 
-                     type="datetime-local" 
-                     className="w-full p-6 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-brand-accent"
-                     value={scheduleDate}
-                     onChange={(e) => setScheduleDate(e.target.value)}
+              <div className="space-y-8 relative z-10">
+                <div className="space-y-2 text-left">
+                   <label className="text-[10px] font-mono text-white/40 uppercase tracking-widest pl-1">Execution Window</label>
+                   <input type="datetime-local" className="w-full p-6 bg-white/5 border border-white/5 text-white italic outline-none focus:border-brand-neon transition-all"
+                     value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)}
                    />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <button onClick={() => setScheduling(false)} className="h-14 font-bold border border-slate-100 rounded-2xl text-[10px] uppercase tracking-widest text-slate-400">Cancel</button>
-                  <button onClick={() => handleSchedule()} disabled={!scheduleDate} className="h-14 bg-brand-accent text-white rounded-2xl font-bold uppercase tracking-widest text-[10px] shadow-xl shadow-brand-accent/20">Schedule</button>
+                  <button onClick={() => setScheduling(false)} className="hypr-btn hypr-btn-outline">Hold</button>
+                  <button onClick={handleSchedule} disabled={!scheduleDate} className="hypr-btn hypr-btn-primary">Finalize</button>
                 </div>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
-      <EliteUpgradeModal isOpen={upgradeModalOpen} onClose={() => setUpgradeModalOpen(false)} />
     </div>
   );
 }
